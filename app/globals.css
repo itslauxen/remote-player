@@ -1,0 +1,61 @@
+:root {
+  --fundo: #07080c;
+  --fundo-alto: #0e1017;
+  --superficie: #12141d;
+  --superficie-alta: #191c28;
+  --borda: #232735;
+  --borda-forte: #2f3446;
+  --tinta: #eef1f8;
+  --tinta-media: #a2a9bd;
+  --tinta-fraca: #6b7288;
+  --acento: #22d3ee;
+  --acento-forte: #06b6d4;
+  --acento-fraco: #22d3ee1a;
+  --alerta: #fb7185;
+  --raio: 20px;
+  --raio-peq: 12px;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100dvh;
+  background: var(--fundo);
+  color: var(--tinta);
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 500;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  overscroll-behavior: none;
+}
+
+button {
+  font-family: inherit;
+  font-weight: inherit;
+  cursor: pointer;
+  border: 0;
+  background: none;
+  color: inherit;
+}
+
+input {
+  font-family: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
