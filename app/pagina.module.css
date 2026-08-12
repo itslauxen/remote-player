@@ -961,6 +961,43 @@
   display: none;
 }
 
+/* A volta anima o caminho inverso antes de o layout voltar a fluir: a capa
+   encolhe para o lugar do 10a, o player sobe e o degrade se apaga. */
+@keyframes encolherCapa {
+  to {
+    width: calc(100% - 40px);
+    height: calc(100vw - 40px);
+    margin: calc(96px + env(safe-area-inset-top)) 20px 0;
+    border-radius: 26px;
+  }
+}
+
+@keyframes subirPlayer {
+  to {
+    transform: translateY(-64px);
+    opacity: 0;
+  }
+}
+
+@keyframes sumirVeu {
+  to {
+    opacity: 0;
+  }
+}
+
+.modoSaindo .capa,
+.modoSaindo .capaVazia {
+  animation: encolherCapa 0.38s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+.modoSaindo .palco::after {
+  animation: sumirVeu 0.38s ease forwards;
+}
+
+.modoSaindo .vidro {
+  animation: subirPlayer 0.34s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
 .modoFila .vidro {
   transform: translateY(10px) scale(0.98);
   opacity: 0.5;
@@ -1013,17 +1050,13 @@
   background: #ffffff1a;
 }
 
+/* Os chips quebram linha: o app nao tem rolagem horizontal em lugar nenhum. */
 .recentes {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   flex: 0 0 auto;
-  overflow-x: auto;
-  scrollbar-width: none;
   padding-bottom: 2px;
-}
-
-.recentes::-webkit-scrollbar {
-  display: none;
 }
 
 .chip {
@@ -1084,6 +1117,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   display: flex;
@@ -1689,7 +1723,9 @@
   }
 
   .modoFoco .capa,
-  .modoFoco .capaVazia {
+  .modoFoco .capaVazia,
+  .modoSaindo .capa,
+  .modoSaindo .capaVazia {
     width: auto;
     height: auto;
     max-height: 94dvh;
@@ -1699,7 +1735,8 @@
     animation: none;
   }
 
-  .modoFoco .vidro {
+  .modoFoco .vidro,
+  .modoSaindo .vidro {
     animation: none;
   }
 
@@ -2000,7 +2037,9 @@
   }
 
   .modoFoco .capa,
-  .modoFoco .capaVazia {
+  .modoFoco .capaVazia,
+  .modoSaindo .capa,
+  .modoSaindo .capaVazia {
     width: 100dvh;
     height: 100dvh;
     border-radius: 0;
@@ -2008,7 +2047,8 @@
     animation: none;
   }
 
-  .modoFoco .vidro {
+  .modoFoco .vidro,
+  .modoSaindo .vidro {
     animation: none;
   }
 

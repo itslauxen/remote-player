@@ -154,6 +154,9 @@ const ALTURA_ITEM = 66;
 export default function Pagina() {
   const [aba, setAba] = useState('tocando');
   const [vista, setVista] = useState('normal');
+  // A saida da capa sangrada anima antes do estado trocar de verdade.
+  const [saindoFoco, setSaindoFoco] = useState(false);
+  const saindoFocoTimer = useRef(null);
   const [faixa, setFaixa] = useState(null);
   const [estado, setEstado] = useState(null);
   const [termo, setTermo] = useState('');
@@ -337,13 +340,30 @@ export default function Pagina() {
     if (Math.abs(dy) < 55 || Math.abs(dx) > Math.abs(dy)) return;
     gestou.current = Date.now();
     navigator.vibrate?.(10);
-    if (dy < 0) setVista((v) => (v === 'foco' ? 'normal' : 'fila'));
-    else setVista((v) => (v === 'fila' ? 'normal' : 'foco'));
+    if (dy < 0) {
+      if (vista === 'foco') sairDoFoco();
+      else setVista('fila');
+    } else {
+      setVista((v) => (v === 'fila' ? 'normal' : 'foco'));
+    }
+  }
+
+  // Sair da capa sangrada espera a animacao reversa terminar; so entao o
+  // layout volta a fluir como 10a.
+  function sairDoFoco() {
+    if (saindoFocoTimer.current) return;
+    setSaindoFoco(true);
+    saindoFocoTimer.current = setTimeout(() => {
+      saindoFocoTimer.current = null;
+      setSaindoFoco(false);
+      setVista('normal');
+    }, 380);
   }
 
   function cliqueCapa() {
     if (Date.now() - gestou.current < 600) return;
-    setVista((v) => (v === 'foco' ? 'normal' : 'foco'));
+    if (vista === 'foco') return sairDoFoco();
+    setVista('foco');
   }
 
   const TELAS = ['tocando', 'busca', 'config'];
@@ -406,8 +426,12 @@ export default function Pagina() {
     const paraBaixo = r.total > 0;
     r.total = 0;
     r.disparo = agora;
-    if (paraBaixo) setVista((v) => (v === 'foco' ? 'normal' : 'fila'));
-    else setVista((v) => (v === 'fila' ? 'normal' : 'foco'));
+    if (paraBaixo) {
+      if (vista === 'foco') sairDoFoco();
+      else setVista('fila');
+    } else {
+      setVista((v) => (v === 'fila' ? 'normal' : 'foco'));
+    }
   }
 
   async function comando(acao) {
@@ -690,6 +714,7 @@ export default function Pagina() {
   const classeTocando = [
     styles.painel,
     vista === 'foco' ? styles.modoFoco : '',
+    saindoFoco ? styles.modoSaindo : '',
     vista === 'fila' ? styles.modoFila : '',
   ].join(' ');
 
@@ -836,7 +861,7 @@ export default function Pagina() {
             </div>
 
             {/* Na capa sangrada o cabecalho some; a pill diz como voltar. */}
-            {vista === 'foco' ? (
+            {vista === 'foco' && !saindoFoco ? (
               <div className={styles.dicaVoltar}>
                 <span className={styles.setaCima}>
                   <Icone nome="seta" tamanho={14} />

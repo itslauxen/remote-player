@@ -20,6 +20,9 @@ export const viewport = {
   themeColor: '#07080c',
   width: 'device-width',
   initialScale: 1,
+  // Sem zoom: o iOS aproxima ao focar o campo de busca e nao desfaz depois.
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: 'cover',
 };
 
