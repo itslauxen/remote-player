@@ -220,7 +220,7 @@ export default function Pagina() {
     setVista((v) => (v === 'foco' ? 'normal' : 'foco'));
   }
 
-  const TELAS = ['tocando', 'fila', 'busca'];
+  const TELAS = ['tocando', 'busca'];
 
   function irPara(nome) {
     if (nome === 'busca') {
@@ -239,7 +239,9 @@ export default function Pagina() {
   }
 
   function navegar(passo) {
-    const i = TELAS.indexOf(telaAtual());
+    if (vista === 'fila') return setVista('normal');
+    const base = aba === 'busca' ? 'busca' : 'tocando';
+    const i = TELAS.indexOf(base);
     irPara(TELAS[(i + passo + TELAS.length) % TELAS.length]);
   }
 
@@ -339,7 +341,10 @@ export default function Pagina() {
     const dx = t.clientX - toqueLista.current.x;
     const noTopo = toqueLista.current.topo <= 2;
     toqueLista.current = null;
-    if (noTopo && dy > 60 && Math.abs(dy) > Math.abs(dx)) {
+
+    const paraBaixo = noTopo && dy > 60 && Math.abs(dy) > Math.abs(dx);
+    const paraDireita = deslizado === -1 && dx > 70 && Math.abs(dx) > Math.abs(dy);
+    if (paraBaixo || paraDireita) {
       navigator.vibrate?.(10);
       setVista('normal');
     }
@@ -455,15 +460,6 @@ export default function Pagina() {
               >
                 <Icone nome="onda" tamanho={18} />
               </button>
-              {completo ? (
-                <button
-                  className={telaAtual() === 'fila' ? styles.navAtivo : undefined}
-                  onClick={() => irPara(telaAtual() === 'fila' ? 'tocando' : 'fila')}
-                  aria-label="Fila"
-                >
-                  <Icone nome="fila" tamanho={18} />
-                </button>
-              ) : null}
               <button
                 className={telaAtual() === 'busca' ? styles.navAtivo : undefined}
                 onClick={() => irPara('busca')}
@@ -685,8 +681,8 @@ export default function Pagina() {
       <aside className={`${styles.gaveta} ${vista === 'fila' ? styles.gavetaAberta : ''}`}>
         <header
           className={styles.gavetaTopo}
-          onTouchStart={inicioToque}
-          onTouchEnd={fimToque}
+          onTouchStart={inicioListaToque}
+          onTouchEnd={fimListaToque}
         >
           <span className={styles.puxadorBarra} />
           <div className={styles.gavetaLinha}>
