@@ -153,11 +153,18 @@ export default {
     if (resposta.status === 502 || (resposta.status >= 520 && resposta.status <= 530)) {
       return offline(alvo, nomes.filter((n) => n !== alvo), ehApi);
     }
-    // Se a maquina de tras esta atras de Access e o service token nao passou, ela
-    // responde um redirect para o login dela. Repassar isso jogaria o visitante
-    // no hostname interno para logar de novo, no app errado. Melhor falhar claro.
+    // Se a maquina de tras esta atras de Access e o service token nao passou, quem
+    // responde e o proprio Access, nao o app: ou um desvio para a tela de login,
+    // ou um 403 com pagina de erro em HTML. Repassar isso entrega HTML no lugar
+    // do JSON da API e no lugar do CSS -- a tela abre sem estilo e dizendo "nada
+    // tocando", sem pista do motivo. Os cabecalhos cf-access-* denunciam a origem.
     const paraLogin = resposta.headers.get('Location') || '';
-    if (resposta.status >= 300 && resposta.status < 400 && paraLogin.includes('cloudflareaccess.com')) {
+    const desviouParaLogin =
+      resposta.status >= 300 && resposta.status < 400 && paraLogin.includes('cloudflareaccess.com');
+    const negadoPeloAccess =
+      resposta.status === 403 &&
+      (resposta.headers.get('cf-access-domain') || resposta.headers.get('cf-access-aud'));
+    if (desviouParaLogin || negadoPeloAccess) {
       return semToken(alvo, ehApi);
     }
     return resposta;
