@@ -21,6 +21,15 @@ function cabecalhosAccess(env) {
   };
 }
 
+// Os cookies que o Access da frente emite valem so para o hostname da frente.
+function semCredenciaisDoAccess(cabecalho) {
+  return (cabecalho || '')
+    .split(';')
+    .map((parte) => parte.trim())
+    .filter((parte) => parte && !/^(CF_Authorization|CF_AppSession)=/i.test(parte))
+    .join('; ');
+}
+
 function lerCookie(cabecalho, nome) {
   for (const parte of (cabecalho || '').split(';')) {
     const [chave, ...resto] = parte.trim().split('=');
@@ -139,6 +148,16 @@ export default {
     const ehApi = url.pathname.startsWith('/api/');
     const destino = new URL(url.pathname + url.search, mapa[alvo]);
     const adiante = new Request(destino, requisicao);
+    // O navegador chega com o CF_Authorization emitido para o hostname da frente.
+    // Repassado adiante, o Access da maquina de tras valida esse cookie -- que e
+    // de outra aplicacao, outro AUD -- e nega com 403, sem nem olhar o service
+    // token. Era por isso que /__dispositivos acusava online (monta a requisicao
+    // do zero) enquanto o proxy devolvia a pagina de erro do Access no lugar do
+    // JSON da API e do CSS.
+    const restantes = semCredenciaisDoAccess(requisicao.headers.get('Cookie'));
+    if (restantes) adiante.headers.set('Cookie', restantes);
+    else adiante.headers.delete('Cookie');
+    adiante.headers.delete('CF-Access-Jwt-Assertion');
     for (const [chave, valor] of Object.entries(cabecalhosAccess(env))) {
       adiante.headers.set(chave, valor);
     }
