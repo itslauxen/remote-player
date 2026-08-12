@@ -152,6 +152,7 @@ export default function Pagina() {
   const [deslizado, setDeslizado] = useState(-1);
   const [arrasto, setArrasto] = useState(null);
   const [ondas, setOndas] = useState(false);
+  const [somAberto, setSomAberto] = useState(false);
   const arrastando = useRef(false);
   const volumeFixado = useRef(false);
   const toque = useRef(null);
@@ -504,7 +505,66 @@ export default function Pagina() {
         onTouchEnd={fimToqueTela}
       >
         <header className={`${styles.topo} ${vista === 'foco' ? styles.topoOculto : ''}`}>
-          <span className={styles.marca}>the player</span>
+          <div className={styles.topoEsquerda}>
+            <div className={styles.volumeCaixa}>
+              <button
+                className={`${styles.volumeBotao} ${somAberto ? styles.volumeBotaoAtivo : ''}`}
+                onClick={() => setSomAberto((v) => !v)}
+                aria-label="Volume"
+                aria-expanded={somAberto}
+              >
+                <Icone nome={faixa?.mudo ? 'mudo' : 'som'} tamanho={19} />
+              </button>
+
+              {somAberto ? (
+                <div className={styles.volumeMenu}>
+                  <span className={styles.volumeValor}>{completo ? (volume ?? '—') : '·'}</span>
+
+                  {completo ? (
+                    <div className={styles.trilhaVertical}>
+                      <input
+                        type="range"
+                        className={styles.faixaDeslize}
+                        style={{ '--pct': `${volume ?? 0}%` }}
+                        min={0}
+                        max={100}
+                        value={volume ?? 0}
+                        aria-label="Volume"
+                        onChange={(e) => {
+                          volumeFixado.current = true;
+                          setVolume(Number(e.target.value));
+                        }}
+                        onPointerUp={(e) =>
+                          chamar('/api/volume', { valor: Number(e.currentTarget.value) })
+                        }
+                        onKeyUp={(e) =>
+                          chamar('/api/volume', { valor: Number(e.currentTarget.value) })
+                        }
+                      />
+                    </div>
+                  ) : (
+                    <div className={styles.passosVertical}>
+                      <button onClick={() => comando('volup')} aria-label="Aumentar volume">
+                        +
+                      </button>
+                      <button onClick={() => comando('voldown')} aria-label="Diminuir volume">
+                        −
+                      </button>
+                    </div>
+                  )}
+
+                  <button
+                    className={`${styles.somBotao} ${faixa?.mudo ? styles.somMudo : ''}`}
+                    onClick={() => comando('mute')}
+                    aria-label="Alternar mudo"
+                  >
+                    <Icone nome={faixa?.mudo ? 'mudo' : 'som'} tamanho={18} />
+                  </button>
+                </div>
+              ) : null}
+            </div>
+            <span className={styles.marca}>the player</span>
+          </div>
           <div className={styles.topoDireita}>
             <nav className={styles.navTopo}>
               <span
@@ -632,46 +692,6 @@ export default function Pagina() {
                 </button>
               </div>
 
-              <div className={styles.som}>
-                <button
-                  className={`${styles.somBotao} ${faixa?.mudo ? styles.somMudo : ''}`}
-                  onClick={() => comando('mute')}
-                  aria-label="Alternar mudo"
-                >
-                  <Icone nome={faixa?.mudo ? 'mudo' : 'som'} tamanho={20} />
-                </button>
-
-                {completo ? (
-                  <>
-                    <input
-                      type="range"
-                      className={styles.faixaDeslize}
-                      style={{ '--pct': `${volume ?? 0}%`, flex: 1, minWidth: 0 }}
-                      min={0}
-                      max={100}
-                      value={volume ?? 0}
-                      aria-label="Volume"
-                      onChange={(e) => {
-                        volumeFixado.current = true;
-                        setVolume(Number(e.target.value));
-                      }}
-                      onPointerUp={(e) =>
-                        chamar('/api/volume', { valor: Number(e.currentTarget.value) })
-                      }
-                      onKeyUp={(e) =>
-                        chamar('/api/volume', { valor: Number(e.currentTarget.value) })
-                      }
-                    />
-                    <span className={styles.somValor}>{volume ?? '—'}</span>
-                  </>
-                ) : (
-                  <div className={styles.passos}>
-                    <button onClick={() => comando('voldown')}>Menos</button>
-                    <button onClick={() => comando('volup')}>Mais</button>
-                  </div>
-                )}
-              </div>
-
             </div>
           </div>
 
@@ -731,6 +751,10 @@ export default function Pagina() {
         </section>
 
       </main>
+
+      {somAberto ? (
+        <div className={styles.cortinaSom} onClick={() => setSomAberto(false)} />
+      ) : null}
 
       <div
         className={`${styles.cortina} ${vista === 'fila' ? styles.cortinaVisivel : ''}`}
