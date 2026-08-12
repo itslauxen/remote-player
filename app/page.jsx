@@ -10,6 +10,21 @@ const tempo = (s) => {
 
 const pct = (valor, total) => `${total > 0 ? Math.min(100, (valor / total) * 100) : 0}%`;
 
+// Marca do app: aro de alto-falante com tres capsulas em degrau, que sao o play e
+// o equalizador ao mesmo tempo. Mesmo desenho dos icones em public/.
+function Marca({ tamanho = 20 }) {
+  return (
+    <svg width={tamanho} height={tamanho} viewBox="0 0 512 512" aria-hidden>
+      <circle cx="256" cy="256" r="200" fill="none" stroke="currentColor" strokeWidth="42" />
+      <g fill="currentColor">
+        <rect x="180" y="166" width="46" height="180" rx="23" />
+        <rect x="244" y="196" width="46" height="120" rx="23" />
+        <rect x="308" y="226" width="46" height="60" rx="23" />
+      </g>
+    </svg>
+  );
+}
+
 function Icone({ nome, tamanho = 24 }) {
   const comum = {
     width: tamanho,
@@ -274,6 +289,7 @@ export default function Pagina() {
   }, []);
 
   function inicioToqueTela(e) {
+    buscaConsumida.current = false;
     if (e.target.closest('input[type=range]')) return (toqueTela.current = null);
     const t = e.touches[0];
     toqueTela.current = { x: t.clientX, y: t.clientY };
@@ -281,6 +297,12 @@ export default function Pagina() {
 
   function fimToqueTela(e) {
     if (!toqueTela.current) return;
+    // Arrastar um resultado da busca para a direita ja enfileirou: sem isto o
+    // mesmo gesto ainda trocaria de tela, porque o limiar dos dois e 70px.
+    if (buscaConsumida.current) {
+      toqueTela.current = null;
+      return;
+    }
     const t = e.changedTouches[0];
     const dx = t.clientX - toqueTela.current.x;
     const dy = t.clientY - toqueTela.current.y;
@@ -713,7 +735,10 @@ export default function Pagina() {
                 </div>
               ) : null}
             </div>
-            <span className={styles.marca}>the player</span>
+            <span className={styles.marca}>
+              <Marca tamanho={20} />
+              the player
+            </span>
           </div>
           <div className={styles.topoDireita}>
             <nav className={styles.navTopo}>

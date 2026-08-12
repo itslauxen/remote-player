@@ -6,7 +6,14 @@ export const metadata = {
   description: 'Controla e escolhe a musica que toca no PC.',
   manifest: '/manifest.webmanifest',
   appleWebApp: { capable: true, title: 'Controle', statusBarStyle: 'black-translucent' },
-  icons: { icon: '/icone-192.png', apple: '/icone-192.png' },
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-16.png', sizes: '16x16', type: 'image/png' },
+    ],
+    apple: '/apple-touch-icon-180.png',
+  },
 };
 
 export const viewport = {
