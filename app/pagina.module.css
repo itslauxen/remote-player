@@ -63,23 +63,6 @@
   color: #ffffff8c;
 }
 
-.selo {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: #ffffffb8;
-  background: #ffffff14;
-  border: 1px solid #ffffff1f;
-  border-radius: 999px;
-  padding: 7px 12px;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
 .topoDireita {
   display: flex;
   align-items: center;
@@ -88,7 +71,8 @@
 }
 
 .navTopo {
-  display: none;
+  position: relative;
+  display: flex;
   align-items: center;
   gap: 4px;
   padding: 3px;
@@ -99,32 +83,33 @@
   -webkit-backdrop-filter: blur(12px);
 }
 
+.navBolha {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--acento);
+  box-shadow: 0 2px 12px #22d3ee66;
+  transition: transform 0.36s cubic-bezier(0.32, 0.72, 0, 1);
+  pointer-events: none;
+}
+
 .navTopo button {
+  position: relative;
+  z-index: 1;
   display: grid;
   place-items: center;
   width: 36px;
   height: 36px;
   border-radius: 999px;
-  color: var(--tinta-fraca);
-  transition: color 0.15s ease, background 0.15s ease;
+  color: var(--tinta-media);
+  transition: color 0.22s ease;
 }
 
-.navAtivo {
-  color: #04222a !important;
-  background: var(--acento);
-}
-
-.ponto {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #ffffff59;
-  flex: 0 0 auto;
-}
-
-.pontoVivo {
-  background: var(--acento);
-  box-shadow: 0 0 8px var(--acento);
+.navTopo .navAtivo {
+  color: #000;
 }
 
 .conteudo {
@@ -132,7 +117,8 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-end;
+  padding-bottom: 4px;
   touch-action: pan-x;
 }
 
@@ -163,10 +149,64 @@
   color: #ffffff26;
 }
 
+.ondasPalco,
+.ondasTopo {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+}
+
+.ondasPalco {
+  width: 100%;
+  max-width: 340px;
+  height: 46vh;
+  padding: 0 8px;
+}
+
+.ondasTopo {
+  display: none;
+  height: 74px;
+  margin-bottom: 22px;
+  gap: 4px;
+}
+
+.ondasPalco span,
+.ondasTopo span {
+  flex: 1;
+  min-width: 2px;
+  max-width: 9px;
+  height: var(--alt);
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--acento), var(--acento-forte));
+  transform-origin: bottom;
+  animation-name: pulsar;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.5, 1);
+  box-shadow: 0 0 12px #22d3ee4d;
+}
+
+@keyframes pulsar {
+  from {
+    transform: scaleY(0.16);
+    opacity: 0.55;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.comOndas .capa,
+.comOndas .capaVazia {
+  display: none;
+}
+
 .vidro {
   position: relative;
   flex: 0 0 auto;
-  padding: 26px 6px 4px;
+  padding: 24px 6px 0;
   transition: opacity 0.3s ease, transform 0.35s ease;
 }
 
@@ -228,34 +268,34 @@
 }
 
 .faixaDeslize::-webkit-slider-runnable-track {
-  height: 5px;
+  height: 8px;
   border-radius: 999px;
-  background: linear-gradient(to right, var(--acento) var(--pct, 0%), #ffffff26 var(--pct, 0%));
+  background: linear-gradient(to right, var(--acento) var(--pct, 0%), #ffffff2e var(--pct, 0%));
 }
 
 .faixaDeslize::-moz-range-track {
-  height: 5px;
+  height: 8px;
   border-radius: 999px;
-  background: linear-gradient(to right, var(--acento) var(--pct, 0%), #ffffff26 var(--pct, 0%));
+  background: linear-gradient(to right, var(--acento) var(--pct, 0%), #ffffff2e var(--pct, 0%));
 }
 
 .faixaDeslize::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 15px;
-  height: 15px;
-  margin-top: -5px;
+  width: 20px;
+  height: 20px;
+  margin-top: -6px;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 0 2px 8px #000000a6;
+  box-shadow: 0 2px 10px #000000b3;
 }
 
 .faixaDeslize::-moz-range-thumb {
-  width: 15px;
-  height: 15px;
+  width: 20px;
+  height: 20px;
   border: 0;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 0 2px 8px #000000a6;
+  box-shadow: 0 2px 10px #000000b3;
 }
 
 .controles {
@@ -304,7 +344,9 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 12px;
+  margin-top: 14px;
+  margin-bottom: -6px;
+  padding: 8px 12px;
   border-radius: 999px;
   background: #ffffff0f;
   border: 1px solid #ffffff14;
@@ -330,6 +372,26 @@
 
 .somMudo {
   color: var(--acento);
+}
+
+.alternar {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: var(--tinta-media);
+  filter: drop-shadow(0 2px 8px #000000a6);
+  transition: color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+}
+
+.alternar:active {
+  transform: scale(0.94);
+}
+
+.alternarAtivo {
+  color: var(--acento);
+  background: #22d3ee1f;
 }
 
 .somValor {
@@ -365,24 +427,9 @@
   background: #ffffff26;
 }
 
-.puxador {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  margin-top: 14px;
-  padding: 10px 0 2px;
-  color: var(--tinta-fraca);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
 .rodapeTocando {
   flex: 0 0 auto;
-  padding-top: 10px;
+  padding-top: 6px;
   transition: opacity 0.3s ease;
 }
 
@@ -476,6 +523,7 @@
   display: flex;
   align-items: center;
   flex: 0 0 auto;
+  margin-top: 18px;
 }
 
 .lupa {
@@ -588,63 +636,6 @@
   color: var(--tinta-fraca);
   font-variant-numeric: tabular-nums;
   flex: 0 0 auto;
-}
-
-.abas {
-  position: relative;
-  display: flex;
-  gap: 8px;
-  flex: 0 0 auto;
-  margin-top: 8px;
-  padding: 6px 0 calc(8px + env(safe-area-inset-bottom));
-  border-top: 1px solid #ffffff14;
-  transition: opacity 0.3s ease;
-}
-
-.modoFoco ~ .abas {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.abas button {
-  position: relative;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 0 10px;
-  border-radius: 12px;
-  color: var(--tinta-fraca);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  transition: color 0.15s ease;
-}
-
-.abas button::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  width: 0;
-  height: 3px;
-  border-radius: 999px;
-  background: var(--acento);
-  transform: translateX(-50%);
-  transition: width 0.25s ease, opacity 0.25s ease;
-  opacity: 0;
-}
-
-.abaAtiva {
-  color: var(--acento);
-}
-
-.abaAtiva::after {
-  width: 26px;
-  opacity: 1;
-  box-shadow: 0 0 10px var(--acento);
 }
 
 .cortina {
@@ -840,19 +831,12 @@
     margin-bottom: 0;
   }
 
-  .navTopo {
-    display: flex;
-  }
-
-  .abas {
-    display: none;
-  }
-
   .conteudo {
     flex-direction: row;
     align-items: center;
     justify-content: center;
     gap: 56px;
+    padding-bottom: 0;
   }
 
   .palco {
@@ -891,12 +875,25 @@
 
   .controles {
     justify-content: center;
-    gap: 28px;
+    gap: 24px;
     margin-bottom: 22px;
   }
 
-  .puxador {
-    justify-content: center;
+  .comOndas .capa,
+  .comOndas .capaVazia {
+    display: block;
+  }
+
+  .comOndas .capaVazia {
+    display: grid;
+  }
+
+  .ondasPalco {
+    display: none;
+  }
+
+  .ondasTopo {
+    display: flex;
   }
 
   .gaveta {
@@ -1001,14 +998,6 @@
     display: none;
   }
 
-  .navTopo {
-    display: flex;
-  }
-
-  .abas {
-    display: none;
-  }
-
   .painel {
     position: relative;
   }
@@ -1018,6 +1007,7 @@
     align-items: stretch;
     gap: 0;
     height: 100dvh;
+    padding-bottom: 0;
   }
 
   .palco {
@@ -1060,8 +1050,35 @@
 
   .controles {
     justify-content: center;
-    gap: 26px;
+    gap: 22px;
     margin-bottom: 16px;
+  }
+
+  .campo {
+    margin: 14px 20px 0;
+  }
+
+  .resultados {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .comOndas .capa {
+    display: block;
+  }
+
+  .comOndas .capaVazia {
+    display: grid;
+  }
+
+  .ondasPalco {
+    display: none;
+  }
+
+  .ondasTopo {
+    display: flex;
+    height: 54px;
+    margin-bottom: 14px;
   }
 
   .rodapeTocando {
@@ -1092,9 +1109,5 @@
 
   .gavetaLista {
     padding-bottom: 12px;
-  }
-
-  .abas {
-    padding-bottom: 0;
   }
 }

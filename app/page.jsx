@@ -77,6 +77,11 @@ function Icone({ nome, tamanho = 24 }) {
     fechar: <path d="M6 6l12 12M18 6L6 18" />,
     seta: <path d="m6 9 6 6 6-6" />,
     pegar: <path d="M5 9h14M5 15h14" />,
+    equalizador: (
+      <>
+        <path d="M5 14v4M9.5 9v9M14.5 5v13M19 11v7" />
+      </>
+    ),
     lixeira: (
       <>
         <path d="M4 7h16M10 11v6M14 11v6" />
@@ -86,6 +91,33 @@ function Icone({ nome, tamanho = 24 }) {
     ),
   };
   return <svg {...comum}>{desenhos[nome]}</svg>;
+}
+
+const BARRAS = Array.from({ length: 32 }, (_, i) => {
+  const centro = 1 - Math.abs(i - 15.5) / 15.5;
+  return {
+    altura: 22 + centro * 58 + ((i * 37) % 19),
+    duracao: 0.62 + ((i * 13) % 9) / 10,
+    atraso: ((i * 29) % 17) / 20,
+  };
+});
+
+function Ondas({ classe, tocando }) {
+  return (
+    <div className={classe} aria-hidden>
+      {BARRAS.map((b, i) => (
+        <span
+          key={i}
+          style={{
+            '--alt': `${b.altura}%`,
+            animationDuration: `${b.duracao}s`,
+            animationDelay: `${b.atraso}s`,
+            animationPlayState: tocando ? 'running' : 'paused',
+          }}
+        />
+      ))}
+    </div>
+  );
 }
 
 async function chamar(url, corpo, metodo) {
@@ -119,9 +151,11 @@ export default function Pagina() {
   const [fila, setFila] = useState({ itens: [], atual: -1, erro: '' });
   const [deslizado, setDeslizado] = useState(-1);
   const [arrasto, setArrasto] = useState(null);
+  const [ondas, setOndas] = useState(false);
   const arrastando = useRef(false);
   const volumeFixado = useRef(false);
   const toque = useRef(null);
+  const toqueTela = useRef(null);
   const toqueLista = useRef(null);
   const toqueItem = useRef(null);
   const timer = useRef(null);
@@ -197,7 +231,26 @@ export default function Pagina() {
     return () => window.removeEventListener('beforeinstallprompt', aoInstalar);
   }, []);
 
+  function inicioToqueTela(e) {
+    if (e.target.closest('input[type=range]')) return (toqueTela.current = null);
+    const t = e.touches[0];
+    toqueTela.current = { x: t.clientX, y: t.clientY };
+  }
+
+  function fimToqueTela(e) {
+    if (!toqueTela.current) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - toqueTela.current.x;
+    const dy = t.clientY - toqueTela.current.y;
+    toqueTela.current = null;
+    if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    gestou.current = Date.now();
+    navigator.vibrate?.(10);
+    navegar(dx < 0 ? 1 : -1);
+  }
+
   function inicioToque(e) {
+    if (e.target.closest('input[type=range]')) return (toque.current = null);
     const t = e.touches[0];
     toque.current = { x: t.clientX, y: t.clientY };
   }
@@ -444,15 +497,20 @@ export default function Pagina() {
       />
       <div className={styles.veu} />
 
-      <main className={styles.tela} onWheel={aoRolarLado}>
+      <main
+        className={styles.tela}
+        onWheel={aoRolarLado}
+        onTouchStart={inicioToqueTela}
+        onTouchEnd={fimToqueTela}
+      >
         <header className={`${styles.topo} ${vista === 'foco' ? styles.topoOculto : ''}`}>
-          <span className={styles.marca}>Controle</span>
+          <span className={styles.marca}>the player</span>
           <div className={styles.topoDireita}>
-            <span className={styles.selo}>
-              <span className={`${styles.ponto} ${faixa?.tocando ? styles.pontoVivo : ''}`} />
-              {completo ? 'App desktop' : 'Teclas de mídia'}
-            </span>
             <nav className={styles.navTopo}>
+              <span
+                className={styles.navBolha}
+                style={{ transform: `translateX(${telaAtual() === 'busca' ? 40 : 0}px)` }}
+              />
               <button
                 className={telaAtual() === 'tocando' ? styles.navAtivo : undefined}
                 onClick={() => irPara('tocando')}
@@ -478,7 +536,10 @@ export default function Pagina() {
             onTouchEnd={fimToque}
             onWheel={aoRolar}
           >
-            <div className={styles.palco} onClick={cliqueCapa}>
+            <div
+              className={`${styles.palco} ${ondas ? styles.comOndas : ''}`}
+              onClick={cliqueCapa}
+            >
               {faixa?.capa ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img className={styles.capa} src={faixa.capa} alt="" />
@@ -487,9 +548,12 @@ export default function Pagina() {
                   <Icone nome="disco" tamanho={80} />
                 </div>
               )}
+              {ondas ? <Ondas classe={styles.ondasPalco} tocando={faixa?.tocando} /> : null}
             </div>
 
             <div className={styles.vidro}>
+              {ondas ? <Ondas classe={styles.ondasTopo} tocando={faixa?.tocando} /> : null}
+
               <div className={styles.identidade}>
                 <div className={`${styles.faixa} ${faixa?.titulo ? '' : styles.vazio}`}>
                   {faixa?.titulo || 'Nada tocando'}
@@ -525,6 +589,18 @@ export default function Pagina() {
               )}
 
               <div className={styles.controles}>
+                {completo ? (
+                  <button
+                    className={`${styles.alternar} ${vista === 'fila' ? styles.alternarAtivo : ''}`}
+                    onClick={() => setVista((v) => (v === 'fila' ? 'normal' : 'fila'))}
+                    aria-label="Fila de reprodução"
+                    aria-pressed={vista === 'fila'}
+                  >
+                    <Icone nome="fila" tamanho={22} />
+                  </button>
+                ) : (
+                  <span className={styles.alternar} />
+                )}
                 <button
                   className={styles.passo}
                   onClick={() => comando('prev')}
@@ -545,6 +621,14 @@ export default function Pagina() {
                   aria-label="Próxima faixa"
                 >
                   <Icone nome="proxima" tamanho={26} />
+                </button>
+                <button
+                  className={`${styles.alternar} ${ondas ? styles.alternarAtivo : ''}`}
+                  onClick={() => setOndas((v) => !v)}
+                  aria-label="Alternar visualização de ondas"
+                  aria-pressed={ondas}
+                >
+                  <Icone nome="equalizador" tamanho={22} />
                 </button>
               </div>
 
@@ -588,12 +672,6 @@ export default function Pagina() {
                 )}
               </div>
 
-              {completo ? (
-                <button className={styles.puxador} onClick={() => setVista('fila')}>
-                  <Icone nome="fila" tamanho={16} />
-                  Fila
-                </button>
-              ) : null}
             </div>
           </div>
 
@@ -652,25 +730,6 @@ export default function Pagina() {
           {notaBusca ? <p className={styles.nota}>{notaBusca}</p> : null}
         </section>
 
-        <nav className={styles.abas}>
-          <button
-            className={aba === 'tocando' ? styles.abaAtiva : undefined}
-            onClick={() => setAba('tocando')}
-          >
-            <Icone nome="onda" tamanho={20} />
-            Tocando
-          </button>
-          <button
-            className={aba === 'busca' ? styles.abaAtiva : undefined}
-            onClick={() => {
-              setAba('busca');
-              setTimeout(() => campo.current?.focus(), 80);
-            }}
-          >
-            <Icone nome="busca" tamanho={20} />
-            Buscar
-          </button>
-        </nav>
       </main>
 
       <div
