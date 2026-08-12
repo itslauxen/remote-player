@@ -288,9 +288,12 @@
   display: none;
 }
 
+/* Em pe o player inteiro assenta na base: a folga fica entre a capa e o
+   titulo, nao embaixo dos botoes. */
 .vidro {
   position: relative;
   flex: 0 0 auto;
+  margin-top: auto;
   padding: 26px 6px 0;
   transition: opacity 0.3s ease, transform 0.35s ease;
 }
@@ -1638,6 +1641,7 @@
   .vidro {
     flex: 0 1 420px;
     align-self: center;
+    margin-top: 0;
     padding: 0;
   }
 
@@ -2024,20 +2028,19 @@
     box-shadow: none;
   }
 
-  .modoFoco .vidro {
-  }
-
+  /* O notch come a lateral: o recuo da busca acompanha a area segura, igual
+     dos dois lados para nao ficar torto. */
   .campoLinha {
-    margin: 14px 20px 0;
+    margin: 14px max(24px, env(safe-area-inset-left), env(safe-area-inset-right)) 0;
   }
 
   .recentes {
-    padding: 0 20px;
+    padding: 0 max(24px, env(safe-area-inset-left), env(safe-area-inset-right));
   }
 
   .resultados {
-    padding-left: 20px;
-    padding-right: 20px;
+    padding-left: max(24px, env(safe-area-inset-left), env(safe-area-inset-right));
+    padding-right: max(24px, env(safe-area-inset-left), env(safe-area-inset-right));
   }
 
   /* Deitado, o notch e o canto arredondado comem a lateral: o recuo acompanha a
