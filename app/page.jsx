@@ -320,7 +320,8 @@ export default function Pagina() {
     if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
     gestou.current = Date.now();
     navigator.vibrate?.(10);
-    navegar(dx < 0 ? 1 : -1);
+    // Mesmo sentido do trackpad: dedo para a direita avanca de tela.
+    navegar(dx < 0 ? -1 : 1);
   }
 
   function inicioToque(e) {
