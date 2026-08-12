@@ -129,6 +129,7 @@ export default function Pagina() {
   const lista = useRef(null);
   const ultimoAlvo = useRef(-1);
   const gestou = useRef(0);
+  const rolagem = useRef({ total: 0, quando: 0, disparo: 0 });
 
   const alvoDe = useCallback(
     (a) =>
@@ -215,6 +216,21 @@ export default function Pagina() {
   function cliqueCapa() {
     if (Date.now() - gestou.current < 600) return;
     setVista((v) => (v === 'foco' ? 'normal' : 'foco'));
+  }
+
+  function aoRolar(e) {
+    const agora = Date.now();
+    const r = rolagem.current;
+    if (agora - r.quando > 260) r.total = 0;
+    r.quando = agora;
+    if (agora - r.disparo < 700) return;
+    r.total += e.deltaY;
+    if (Math.abs(r.total) < 90) return;
+    const paraBaixo = r.total > 0;
+    r.total = 0;
+    r.disparo = agora;
+    if (paraBaixo) setVista((v) => (v === 'foco' ? 'normal' : 'fila'));
+    else setVista((v) => (v === 'fila' ? 'normal' : 'foco'));
   }
 
   async function comando(acao) {
@@ -420,7 +436,12 @@ export default function Pagina() {
         </header>
 
         <section className={aba === 'tocando' ? classeTocando : styles.oculto}>
-          <div className={styles.conteudo} onTouchStart={inicioToque} onTouchEnd={fimToque}>
+          <div
+            className={styles.conteudo}
+            onTouchStart={inicioToque}
+            onTouchEnd={fimToque}
+            onWheel={aoRolar}
+          >
             <div className={styles.palco} onClick={cliqueCapa}>
               {faixa?.capa ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -648,6 +669,9 @@ export default function Pagina() {
           ref={lista}
           onTouchStart={inicioListaToque}
           onTouchEnd={fimListaToque}
+          onWheel={(e) => {
+            if ((lista.current?.scrollTop ?? 0) <= 2 && e.deltaY < 0) aoRolar(e);
+          }}
         >
           {fila.erro ? <p className={styles.nota}>{fila.erro}</p> : null}
           {!fila.erro && !fila.itens.length ? <p className={styles.nota}>Fila vazia.</p> : null}
