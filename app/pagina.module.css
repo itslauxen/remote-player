@@ -216,12 +216,13 @@
   gap: 3px;
 }
 
-/* No celular em pe o equalizador escapa do padding da tela e para a 16px da borda. */
+/* No celular em pe o equalizador escapa do padding da tela e para a 16px da
+   borda. A altura copia a da capa para o player nao mudar de lugar. */
 .ondasPalco {
   width: calc(100vw - 32px);
   max-width: calc(100vw - 32px);
   margin-inline: calc(50% - 50vw + 16px);
-  height: 46vh;
+  height: min(calc(100vw - 40px), 50dvh);
   padding: 0;
   gap: 3px;
 }
@@ -509,6 +510,55 @@
   background: #22d3ee29;
 }
 
+/* O morfo entre 10a e 10b usa a mesma curva da gaveta. */
+::view-transition-group(capa),
+::view-transition-group(player),
+::view-transition-group(topo) {
+  animation-duration: 0.38s;
+  animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Aviso unico para qualquer tela: enfileirar, comandos, erros. */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(28px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 20;
+  max-width: min(86vw, 420px);
+  padding: 12px 18px;
+  border-radius: 999px;
+  background: #10121bf2;
+  border: 1px solid #ffffff24;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: 0 12px 34px #000000a6;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  animation: brotarToast 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@keyframes brotarToast {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(12px) scale(0.95);
+  }
+}
+
+.toastOk {
+  color: var(--acento);
+  border-color: #22d3ee59;
+}
+
+.toastErro {
+  color: var(--alerta);
+  border-color: #fb718559;
+}
+
 .cortinaSom {
   position: fixed;
   inset: 0;
@@ -790,25 +840,6 @@
   color: var(--tinta-fraca);
 }
 
-.estado {
-  text-align: center;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--tinta-fraca);
-  min-height: 14px;
-  transition: color 0.2s ease;
-}
-
-.ok {
-  color: var(--acento);
-}
-
-.erro {
-  color: var(--alerta);
-}
-
 .nota {
   font-size: 12px;
   color: var(--tinta-fraca);
@@ -836,17 +867,7 @@
   pointer-events: none;
 }
 
-/* Dicas de gesto do 10a/10b. */
-.dicaFoco {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 11px;
-  color: var(--tinta-fraca);
-  padding: 6px 0 10px;
-}
-
+/* Dica de gesto do 10b. */
 .dicaVoltar {
   position: fixed;
   top: calc(18px + env(safe-area-inset-top));
@@ -876,26 +897,17 @@
 /* 10b: a capa sangra nas tres bordas e o player continua legivel no degrade.
    A entrada anima do lugar onde as coisas estavam no 10a: a capa cresce das
    margens para as bordas e o player desce ate a base. */
-@keyframes crescerCapa {
-  from {
-    width: calc(100% - 40px);
-    height: calc(100vw - 40px);
-    margin: calc(96px + env(safe-area-inset-top)) 20px 0;
-    border-radius: 26px;
-  }
+.capa,
+.capaVazia {
+  view-transition-name: capa;
 }
 
-@keyframes descerPlayer {
-  from {
-    transform: translateY(-64px);
-    opacity: 0;
-  }
+.vidro {
+  view-transition-name: player;
 }
 
-@keyframes surgirVeu {
-  from {
-    opacity: 0;
-  }
+.topo {
+  view-transition-name: topo;
 }
 
 .modoFoco .rodapeTocando {
@@ -929,12 +941,8 @@
   max-height: none;
   border-radius: 0;
   box-shadow: none;
-  animation: crescerCapa 0.38s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-.modoFoco .palco::after {
-  animation: surgirVeu 0.38s ease;
-}
 
 .modoFoco .capaVazia {
   place-items: center;
@@ -947,7 +955,6 @@
   bottom: 40px;
   z-index: 6;
   padding: 0;
-  animation: descerPlayer 0.42s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .modoFoco .identidade .faixa {
@@ -959,43 +966,6 @@
 .modoFoco .ondasTopo,
 .modoFoco .rotuloTocando {
   display: none;
-}
-
-/* A volta anima o caminho inverso antes de o layout voltar a fluir: a capa
-   encolhe para o lugar do 10a, o player sobe e o degrade se apaga. */
-@keyframes encolherCapa {
-  to {
-    width: calc(100% - 40px);
-    height: calc(100vw - 40px);
-    margin: calc(96px + env(safe-area-inset-top)) 20px 0;
-    border-radius: 26px;
-  }
-}
-
-@keyframes subirPlayer {
-  to {
-    transform: translateY(-64px);
-    opacity: 0;
-  }
-}
-
-@keyframes sumirVeu {
-  to {
-    opacity: 0;
-  }
-}
-
-.modoSaindo .capa,
-.modoSaindo .capaVazia {
-  animation: encolherCapa 0.38s cubic-bezier(0.32, 0.72, 0, 1) forwards;
-}
-
-.modoSaindo .palco::after {
-  animation: sumirVeu 0.38s ease forwards;
-}
-
-.modoSaindo .vidro {
-  animation: subirPlayer 0.34s cubic-bezier(0.32, 0.72, 0, 1) forwards;
 }
 
 .modoFila .vidro {
@@ -1698,7 +1668,6 @@
   }
 
   /* No desktop as dicas de gesto de toque nao fazem sentido. */
-  .dicaFoco,
   .dicaVoltar {
     display: none;
   }
@@ -1723,21 +1692,16 @@
   }
 
   .modoFoco .capa,
-  .modoFoco .capaVazia,
-  .modoSaindo .capa,
-  .modoSaindo .capaVazia {
+  .modoFoco .capaVazia {
     width: auto;
     height: auto;
     max-height: 94dvh;
     max-width: 94vw;
     border-radius: 20px;
     box-shadow: 0 40px 90px #000000b3;
-    animation: none;
   }
 
-  .modoFoco .vidro,
-  .modoSaindo .vidro {
-    animation: none;
+  .modoFoco .vidro {
   }
 
   .modoFoco .capaVazia {
@@ -2014,10 +1978,6 @@
     pointer-events: none;
   }
 
-  /* Deitado a capa ja e a tela: o foco volta a ser so ela, centrada. */
-  .dicaFoco {
-    display: none;
-  }
 
   .modoFoco .vidro {
     position: static;
@@ -2037,19 +1997,14 @@
   }
 
   .modoFoco .capa,
-  .modoFoco .capaVazia,
-  .modoSaindo .capa,
-  .modoSaindo .capaVazia {
+  .modoFoco .capaVazia {
     width: 100dvh;
     height: 100dvh;
     border-radius: 0;
     box-shadow: none;
-    animation: none;
   }
 
-  .modoFoco .vidro,
-  .modoSaindo .vidro {
-    animation: none;
+  .modoFoco .vidro {
   }
 
   .campoLinha {

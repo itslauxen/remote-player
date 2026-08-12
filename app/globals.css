@@ -30,6 +30,12 @@ body {
   overscroll-behavior: none;
 }
 
+/* O html tambem pinta o fundo: qualquer fresta do iOS (barra de inicio,
+   overscroll) mostra esta cor, nunca uma faixa diferente. */
+html {
+  background: var(--fundo);
+}
+
 body {
   background: var(--fundo);
   color: var(--tinta);

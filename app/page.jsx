@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import styles from './pagina.module.css';
 
 const tempo = (s) => {
@@ -154,9 +155,6 @@ const ALTURA_ITEM = 66;
 export default function Pagina() {
   const [aba, setAba] = useState('tocando');
   const [vista, setVista] = useState('normal');
-  // A saida da capa sangrada anima antes do estado trocar de verdade.
-  const [saindoFoco, setSaindoFoco] = useState(false);
-  const saindoFocoTimer = useRef(null);
   const [faixa, setFaixa] = useState(null);
   const [estado, setEstado] = useState(null);
   const [termo, setTermo] = useState('');
@@ -341,29 +339,29 @@ export default function Pagina() {
     gestou.current = Date.now();
     navigator.vibrate?.(10);
     if (dy < 0) {
-      if (vista === 'foco') sairDoFoco();
+      if (vista === 'foco') focar('normal');
       else setVista('fila');
     } else {
-      setVista((v) => (v === 'fila' ? 'normal' : 'foco'));
+      if (vista === 'fila') setVista('normal');
+      else focar('foco');
     }
   }
 
-  // Sair da capa sangrada espera a animacao reversa terminar; so entao o
-  // layout volta a fluir como 10a.
-  function sairDoFoco() {
-    if (saindoFocoTimer.current) return;
-    setSaindoFoco(true);
-    saindoFocoTimer.current = setTimeout(() => {
-      saindoFocoTimer.current = null;
-      setSaindoFoco(false);
-      setVista('normal');
-    }, 380);
+  // Entre 10a e a capa sangrada o navegador morfa capa, player e cabecalho
+  // entre os layouts reais - nas duas direcoes, sem posicao chutada. Onde nao
+  // ha View Transitions a troca e seca, como antes.
+  function focar(novo) {
+    const aplicar = () => setVista(novo);
+    if (document.startViewTransition) {
+      document.startViewTransition(() => flushSync(aplicar));
+    } else {
+      aplicar();
+    }
   }
 
   function cliqueCapa() {
     if (Date.now() - gestou.current < 600) return;
-    if (vista === 'foco') return sairDoFoco();
-    setVista('foco');
+    focar(vista === 'foco' ? 'normal' : 'foco');
   }
 
   const TELAS = ['tocando', 'busca', 'config'];
@@ -427,17 +425,19 @@ export default function Pagina() {
     r.total = 0;
     r.disparo = agora;
     if (paraBaixo) {
-      if (vista === 'foco') sairDoFoco();
+      if (vista === 'foco') focar('normal');
       else setVista('fila');
     } else {
-      setVista((v) => (v === 'fila' ? 'normal' : 'foco'));
+      if (vista === 'fila') setVista('normal');
+      else focar('foco');
     }
   }
 
+  // Sucesso de comando nao avisa: o proprio player mudando e o feedback.
   async function comando(acao) {
     navigator.vibrate?.(12);
     const d = await chamar(`/api/cmd/${acao}`, {});
-    avisar(d.ok ? 'enviado' : d.erro || 'não enviado', d.ok);
+    if (!d.ok) avisar(d.erro || 'não enviado', false);
     setTimeout(atualizar, 350);
   }
 
@@ -714,7 +714,6 @@ export default function Pagina() {
   const classeTocando = [
     styles.painel,
     vista === 'foco' ? styles.modoFoco : '',
-    saindoFoco ? styles.modoSaindo : '',
     vista === 'fila' ? styles.modoFila : '',
   ].join(' ');
 
@@ -861,7 +860,7 @@ export default function Pagina() {
             </div>
 
             {/* Na capa sangrada o cabecalho some; a pill diz como voltar. */}
-            {vista === 'foco' && !saindoFoco ? (
+            {vista === 'foco' ? (
               <div className={styles.dicaVoltar}>
                 <span className={styles.setaCima}>
                   <Icone nome="seta" tamanho={14} />
@@ -989,16 +988,6 @@ export default function Pagina() {
           </div>
 
           <div className={styles.rodapeTocando}>
-            {/* A sobra de baixo do 10a anuncia o gesto que abre a capa sangrada. */}
-            <div className={styles.dicaFoco}>
-              <Icone nome="seta" tamanho={14} />
-              arraste para baixo para ver só a capa
-            </div>
-            <div
-              className={`${styles.estado} ${estado ? (estado.ok ? styles.ok : styles.erro) : ''}`}
-            >
-              {estado?.texto || ''}
-            </div>
             {!completo ? (
               <p className={styles.nota}>
                 Abra o app desktop do YouTube Music no PC para ter capa, fila e volume exato.
@@ -1223,6 +1212,17 @@ export default function Pagina() {
         </section>
 
       </main>
+
+      {/* Toast unico para qualquer aviso - enfileirar, comandos, erros - em
+          qualquer tela, ja que o rodape so existe no tocando. */}
+      {estado ? (
+        <div
+          className={`${styles.toast} ${estado.ok ? styles.toastOk : styles.toastErro}`}
+          role="status"
+        >
+          {estado.texto}
+        </div>
+      ) : null}
 
       {somAberto ? (
         <div className={styles.cortinaSom} onClick={() => setSomAberto(false)} />
