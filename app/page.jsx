@@ -213,6 +213,7 @@ export default function Pagina() {
   );
 
   const completo = !!faixa?.completo;
+  const aSeguir = fila.atual >= 0 ? fila.itens[fila.atual + 1] : null;
 
   const avisar = useCallback((texto, ok) => {
     setEstado({ texto, ok });
@@ -253,6 +254,13 @@ export default function Pagina() {
     }, 5000);
     return () => clearInterval(id);
   }, [vista, carregarFila]);
+
+  // O "a seguir" do modo deitado precisa da fila carregada mesmo com a gaveta
+  // fechada. Recarrega quando a faixa troca, em vez de ficar em intervalo.
+  useEffect(() => {
+    if (aba !== 'tocando' || !completo) return;
+    carregarFila();
+  }, [aba, completo, faixa?.titulo, carregarFila]);
 
   // Quem responde /__dispositivos e o Worker, nao este servidor. Acessando a
   // maquina direto a rota nao existe, e a tela explica isso.
@@ -875,6 +883,17 @@ export default function Pagina() {
                   <Icone nome="equalizador" tamanho={22} />
                 </button>
               </div>
+
+              {/* So aparece deitado, onde sobra espaco embaixo dos botoes. */}
+              {aSeguir ? (
+                <div className={styles.aSeguir}>
+                  <span className={styles.aSeguirRotulo}>A seguir</span>
+                  <span className={styles.aSeguirFaixa}>{aSeguir.titulo}</span>
+                  {aSeguir.artista ? (
+                    <span className={styles.aSeguirArtista}>{aSeguir.artista}</span>
+                  ) : null}
+                </div>
+              ) : null}
 
             </div>
           </div>

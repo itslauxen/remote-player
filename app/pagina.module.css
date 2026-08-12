@@ -621,6 +621,40 @@
   transition: opacity 0.3s ease;
 }
 
+/* Em pe nao ha espaco: a fila ja esta a um gesto de distancia. */
+.aSeguir {
+  display: none;
+}
+
+.aSeguirRotulo {
+  flex: 0 0 auto;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--acento);
+}
+
+.aSeguirFaixa {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tinta-media);
+}
+
+.aSeguirArtista {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  color: var(--tinta-fraca);
+}
+
 .estado {
   text-align: center;
   font-size: 11px;
@@ -1247,6 +1281,18 @@
     flex-direction: column;
     justify-content: center;
     margin-bottom: 0;
+  }
+
+  /* Ocupa o vazio que sobrava abaixo dos botoes. So existe deitado. */
+  .aSeguir {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 8px;
+    min-width: 0;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--borda);
   }
 
   .identidade {
