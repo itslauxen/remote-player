@@ -229,7 +229,9 @@ e-mail.
 Alternativa sem domínio próprio: `tailscale serve --bg 8765` cria uma rede privada
 entre seus aparelhos, sem expor nada na internet.
 
-## Subir junto com o Windows
+## Subir junto com o sistema
+
+### Windows
 
 Os scripts `iniciar.cmd` (com janela) e `iniciar-silencioso.vbs` (sem janela) sobem
 o servidor e o túnel juntos. Ambos usam o nome de túnel `remoteplayer` — troque se
@@ -241,6 +243,36 @@ Inicialização:
 ```powershell
 explorer shell:startup
 ```
+
+### macOS
+
+Use o `iniciar.sh`, passando o nome do túnel se tiver um:
+
+```bash
+chmod +x iniciar.sh
+TUNEL=mac ./iniciar.sh
+```
+
+Para subir no login, instale o túnel como serviço e crie um LaunchAgent para o
+servidor:
+
+```bash
+sudo cloudflared service install
+```
+
+## Rodar em mais de um computador
+
+Cada máquina roda seu próprio servidor e precisa do seu próprio túnel, porque um
+túnel entrega para uma máquina só. Use um subdomínio por computador:
+
+```bash
+cloudflared tunnel create mac
+cloudflared tunnel route dns mac mac.seu-dominio.com
+```
+
+Aponte o `config.yml` do Mac para `http://localhost:8765` dele e pronto: cada
+endereço controla o player da máquina correspondente, e os dois podem ficar no ar
+ao mesmo tempo.
 
 ## Variáveis de ambiente
 
