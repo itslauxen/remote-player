@@ -28,6 +28,17 @@ the phone screen.
 
 ## Installing on Windows
 
+### Quick path
+
+```powershell
+powershell -ExecutionPolicy Bypass -File instalar-windows.ps1
+```
+
+Installs the dependencies, builds the project, installs the desktop app, turns on
+the API Server and precise-volume plugins, and prints the address for your phone.
+Pass `-Sim` to skip the confirmation prompt. Everything below is the same thing
+done by hand.
+
 ### 1. Install Node.js
 
 ```powershell
@@ -48,6 +59,10 @@ Open the app once and sign in to your account.
 
 In the app, go to **Plugins → API Server** and enable it. Under **Auth Strategy**,
 pick **None** (without this the remote gets a 401 and falls back to basic mode).
+
+Turn on **precise-volume** in the same screen. Without it the player's volume
+endpoint answers `204` and silently does nothing, so the slider moves and the PC
+ignores it.
 
 If you would rather edit the file, it lives at `%APPDATA%\YouTube Music\config.json`:
 
@@ -131,6 +146,8 @@ first attempt: go to **System Settings → Privacy & Security** and click
 ### 3. Turn on the API Server plugin
 
 In the app, **Plugins → API Server**, and under **Auth Strategy** pick **None**.
+Turn on **precise-volume** too — without it the volume endpoint answers `204` and
+does nothing.
 
 The config file lives at
 `~/Library/Application Support/YouTube Music/config.json`.
@@ -261,7 +278,14 @@ explorer shell:startup
 
 ### macOS
 
-Use `iniciar.sh`, passing the tunnel name if you have one:
+`Remote Player.app` is a one-click session: it starts the server and the tunnel,
+opens the YouTube Music app, and tears all three down when you quit the player.
+Nothing is left running between sessions — no launch agent, no watcher. Drag it to
+the Dock if you like, but leave the bundle inside the project folder, since it
+locates the project relative to itself. Set a different tunnel with the `TUNEL`
+environment variable (it defaults to `mac`).
+
+For the terminal, use `iniciar.sh`, passing the tunnel name if you have one:
 
 ```bash
 chmod +x iniciar.sh

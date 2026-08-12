@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+# Uma sessao inteira num clique: sobe servidor e tunel, abre o YouTube Music, e
+# derruba tudo quando o player fecha. Nada fica rodando fora disso - este
+# processo aqui e a propria sessao, nao um vigia de fundo.
+#
+# O bundle mora na raiz do repo, entao a raiz e tres niveis acima do executavel.
+set -u
+cd "$(cd "$(dirname "$0")/../../.." && pwd)" || exit 1
+
+# Se alguem arrastar o bundle para fora do repo, o caminho relativo quebra e o
+# erro seria incompreensivel. Melhor dizer o que houve.
+if [ ! -f package.json ]; then
+  osascript -e 'display alert "Remote Player" message "Este app precisa ficar dentro da pasta do projeto. Para ter no Dock, arraste ele para la sem tirar da pasta."' >/dev/null 2>&1
+  exit 1
+fi
+
+# LaunchServices nao herda o PATH do shell, entao nada disto esta no caminho por
+# padrao. Brew cobre o cloudflared; o node costuma vir do nvm, que precisa ser
+# carregado a mao - e se o nvm nao tiver alias default, cai no glob da versao
+# mais nova.
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+if ! command -v npm >/dev/null 2>&1; then
+  # A mais nova primeiro: o alias default do nvm costuma ficar para tras da
+  # versao que o shell realmente usa.
+  ultimo=$(/bin/ls -d "$HOME/.nvm/versions/node"/*/bin 2>/dev/null | sort -V | tail -1)
+  [ -n "$ultimo" ] && export PATH="$ultimo:$PATH"
+fi
+if ! command -v npm >/dev/null 2>&1; then
+  export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+  # shellcheck source=/dev/null
+  [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" >/dev/null 2>&1
+fi
+
+APP="/Applications/YouTube Music.app"
+APP_BIN="$APP/Contents/MacOS"
+PORTA="${PORT:-8765}"
+TUNEL="${TUNEL:-mac}"
+LOG="$HOME/Library/Logs/remote-player.log"
+
+mkdir -p "$(dirname "$LOG")"
+anotar() { echo "$(date '+%F %T') $*" >>"$LOG"; }
+na_porta() { lsof -nP -iTCP:"$PORTA" -sTCP:LISTEN -t 2>/dev/null; }
+
+avisar() {
+  osascript -e "display notification \"$1\" with title \"Remote Player\"" >/dev/null 2>&1
+}
+
+derrubar() {
+  # Mata por porta, nao por pid: `npm start` deixa o `next start` como filho, e
+  # matar so o pai deixaria o filho orfao segurando a porta.
+  local resto
+  resto=$(na_porta)
+  if [ -n "$resto" ]; then
+    kill $resto 2>/dev/null
+    sleep 2
+    resto=$(na_porta)
+    [ -n "$resto" ] && kill -9 $resto 2>/dev/null
+  fi
+  pkill -f "cloudflared tunnel run $TUNEL" 2>/dev/null
+  anotar "sessao encerrada"
+}
+trap 'derrubar; exit 0' TERM INT HUP
+
+if [ ! -d "$APP" ]; then
+  osascript -e 'display alert "Remote Player" message "O app do YouTube Music nao esta instalado. Rode instalar-mac.sh primeiro."' >/dev/null 2>&1
+  exit 1
+fi
+
+# Sem isto o laco tentaria subir o servidor a cada 3s para sempre, so enchendo
+# o log com "command not found".
+if ! command -v npm >/dev/null 2>&1; then
+  osascript -e 'display alert "Remote Player" message "Nao encontrei o npm. Instale o Node ou rode instalar-mac.sh."' >/dev/null 2>&1
+  exit 1
+fi
+
+anotar "sessao iniciada"
+
+# Chamadas tanto na largada quanto a cada volta do laco: se um dos dois cair no
+# meio da sessao - ou nem chegar a subir - a volta seguinte levanta de novo.
+subir_servidor() {
+  [ -n "$(na_porta)" ] && return 0
+  npm start >>"$LOG" 2>&1 &
+  anotar "servidor subindo"
+}
+
+subir_tunel() {
+  [ -z "$TUNEL" ] && return 0
+  pgrep -f "cloudflared tunnel run $TUNEL" >/dev/null 2>&1 && return 0
+  cloudflared tunnel run "$TUNEL" >>"$LOG" 2>&1 &
+  anotar "tunel $TUNEL subindo"
+}
+
+subir_servidor
+subir_tunel
+open -a "$APP"
+
+# Espera o player aparecer antes de vigiar, senao o laco termina na hora.
+for _ in $(seq 1 30); do
+  pgrep -f "$APP_BIN" >/dev/null 2>&1 && break
+  sleep 1
+done
+
+endereco=$(node scripts/endereco.mjs 2>/dev/null | grep -o 'http://[0-9.]*:[0-9]*' | head -1)
+avisar "No ar em ${endereco:-porta $PORTA}. Feche o YouTube Music para encerrar."
+
+# A sessao dura o quanto o player durar.
+while pgrep -f "$APP_BIN" >/dev/null 2>&1; do
+  sleep 3
+  subir_servidor
+  subir_tunel
+done
+
+derrubar
