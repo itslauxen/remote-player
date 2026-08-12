@@ -1,0 +1,20 @@
+name = "remoteplayer-switch"
+main = "index.js"
+compatibility_date = "2026-08-01"
+
+# Uma entrada ALVO_<NOME> por maquina. O <NOME> em minusculo e o que vai na URL:
+# remoteplayer.lauxen.dev/?pc=mac
+[vars]
+ALVO_WIN = "https://win.lauxen.dev"
+ALVO_MAC = "https://mac.lauxen.dev"
+PADRAO = "mac"
+
+# O endereco unico que o celular acessa.
+[[routes]]
+pattern = "remoteplayer.lauxen.dev/*"
+zone_name = "lauxen.dev"
+
+# Se os hostnames de tras estiverem protegidos por Cloudflare Access, crie um
+# service token e guarde as duas metades como secret, nao aqui:
+#   npx wrangler secret put ACCESS_ID
+#   npx wrangler secret put ACCESS_SECRET

@@ -1,51 +1,55 @@
-# Controle do YouTube Music
+# YouTube Music Remote
 
-Controle pelo celular a música que toca no PC. O servidor roda na sua máquina e o
-celular abre uma página web na mesma rede — play/pause, faixa anterior e próxima,
-volume, barra de progresso, capa do álbum e busca no catálogo do YouTube Music.
+Control the music playing on your PC from your phone. The server runs on your
+machine and your phone opens a web page on the same network — play/pause,
+previous and next track, volume, progress bar, album art and search across the
+YouTube Music catalog.
 
-Funciona no Windows, macOS e Linux.
+Works on Windows, macOS and Linux.
 
-## Como funciona
+## How it works
 
-O servidor roda **no PC que toca a música** e fala com o player de duas formas:
+The server runs **on the PC that plays the music** and talks to the player in two
+different ways:
 
-**Modo completo (recomendado)** — o app desktop [pear-desktop](https://github.com/pear-devs/pear-desktop)
-(antigo `th-ch/youtube-music`) expõe uma API local. Você tem volume exato, barra de
-progresso arrastável, capa do álbum e a música escolhida entra direto na fila.
+**Full mode (recommended)** — the [pear-desktop](https://github.com/pear-devs/pear-desktop)
+desktop app (formerly `th-ch/youtube-music`) exposes a local API. You get exact
+volume, a draggable progress bar, album art, and the track you pick goes straight
+into the queue.
 
-**Modo básico** — o YouTube Music aberto no navegador, controlado pelas teclas de
-mídia do sistema. Play/pause, anterior e próxima funcionam; o volume vira o do
-sistema, não há barra de progresso nem capa, e escolher uma música abre uma aba nova.
+**Basic mode** — YouTube Music open in the browser, driven by the system media
+keys. Play/pause, previous and next work; volume becomes the system volume, there
+is no progress bar or album art, and picking a track opens a new tab.
 
-O servidor detecta sozinho qual está disponível e mostra o modo ativo na tela do celular.
+The server detects on its own which one is available and shows the active mode on
+the phone screen.
 
 ---
 
-## Instalação no Windows
+## Installing on Windows
 
-### 1. Instale o Node.js
+### 1. Install Node.js
 
 ```powershell
 winget install --id OpenJS.NodeJS.LTS -e
 ```
 
-Feche e reabra o terminal para o PATH atualizar. Confira com `node -v`.
+Close and reopen the terminal so PATH updates. Check with `node -v`.
 
-### 2. Instale o app desktop do YouTube Music
+### 2. Install the YouTube Music desktop app
 
 ```powershell
 winget install --id th-ch.YouTubeMusic -e
 ```
 
-Abra o app uma vez e faça login na sua conta.
+Open the app once and sign in to your account.
 
-### 3. Ligue o plugin API Server
+### 3. Turn on the API Server plugin
 
-No app, vá em **Plugins → API Server** e ative. Em **Auth Strategy**, escolha **None**
-(sem isso o controle recebe 401 e cai no modo básico).
+In the app, go to **Plugins → API Server** and enable it. Under **Auth Strategy**,
+pick **None** (without this the remote gets a 401 and falls back to basic mode).
 
-Se preferir editar o arquivo, ele fica em `%APPDATA%\YouTube Music\config.json`:
+If you would rather edit the file, it lives at `%APPDATA%\YouTube Music\config.json`:
 
 ```json
 "plugins": {
@@ -58,9 +62,9 @@ Se preferir editar o arquivo, ele fica em `%APPDATA%\YouTube Music\config.json`:
 }
 ```
 
-Feche o app completamente antes de editar — ele reescreve o arquivo ao sair.
+Close the app completely before editing — it rewrites the file on exit.
 
-### 4. Rode o projeto
+### 4. Run the project
 
 ```powershell
 npm install
@@ -68,60 +72,70 @@ npm run build
 npm start
 ```
 
-O servidor sobe em `0.0.0.0:8765`. Na primeira execução o Windows pode pedir para
-liberar o firewall — aceite para **redes privadas**.
+The server comes up on `0.0.0.0:8765`. On the first run Windows may ask you to
+allow it through the firewall — accept for **private networks**.
 
-Se a sua rede estiver classificada como pública, libere a porta manualmente num
-PowerShell **como administrador**:
+If your network is classified as public, open the port manually in an
+**administrator** PowerShell:
 
 ```powershell
-New-NetFirewallRule -DisplayName "Controle YTM 8765" -Direction Inbound `
+New-NetFirewallRule -DisplayName "YTM Remote 8765" -Direction Inbound `
   -Protocol TCP -LocalPort 8765 -Action Allow -RemoteAddress LocalSubnet
 ```
 
-### 5. Abra no celular
+### 5. Open it on your phone
 
 ```powershell
 npm run endereco
 ```
 
-Mostra o endereço, algo como `http://192.168.1.47:8765`. Digite no navegador do
-celular, que precisa estar na mesma rede.
+Prints the address, something like `http://192.168.1.47:8765`. Type it into your
+phone's browser — the phone has to be on the same network.
 
-Para não repetir os comandos, dê dois cliques em `iniciar.cmd` — ele mostra o
-endereço e sobe o servidor.
+To avoid repeating the commands, double-click `iniciar.cmd` — it prints the
+address and starts the server.
 
 ---
 
-## Instalação no macOS
+## Installing on macOS
 
-### 1. Instale o Node.js
+### Quick path
+
+```bash
+./instalar-mac.sh
+```
+
+The script installs the dependencies, builds the project, downloads and installs
+the desktop app, turns on the API Server plugin, and prints the address for your
+phone. Pass `-y` to skip the confirmation prompt. Everything below is the same
+thing done by hand.
+
+### 1. Install Node.js
 
 ```bash
 brew install node
 ```
 
-### 2. Instale o app desktop do YouTube Music
+### 2. Install the YouTube Music desktop app
 
-```bash
-brew install --cask th-ch/youtube-music/youtube-music
-```
+The app is not on Homebrew — it is unsigned, and the project's own tap
+(`th-ch/youtube-music`) is gone since the rename to `pear-desktop`. Download the
+`.dmg` from the [releases page](https://github.com/pear-devs/pear-desktop/releases):
+`YouTube-Music-<version>-arm64.dmg` for Apple Silicon, `YouTube-Music-<version>.dmg`
+for Intel. Open it and drag the app to Applications.
 
-O app não está no cask oficial do Homebrew porque não é assinado, então o comando
-usa o tap do próprio projeto.
+Open the app once and sign in. Since Apple has not signed it, macOS may block the
+first attempt: go to **System Settings → Privacy & Security** and click
+**Open Anyway**.
 
-Abra o app uma vez e faça login. Como ele não é assinado pela Apple, na primeira
-tentativa o macOS bloqueia: vá em **Ajustes do Sistema → Privacidade e Segurança**
-e clique em **Abrir Assim Mesmo**.
+### 3. Turn on the API Server plugin
 
-### 3. Ligue o plugin API Server
+In the app, **Plugins → API Server**, and under **Auth Strategy** pick **None**.
 
-No app, **Plugins → API Server**, e em **Auth Strategy** escolha **None**.
-
-O arquivo de configuração fica em
+The config file lives at
 `~/Library/Application Support/YouTube Music/config.json`.
 
-### 4. Rode o projeto
+### 4. Run the project
 
 ```bash
 npm install
@@ -129,116 +143,117 @@ npm run build
 npm start
 ```
 
-Na primeira execução o macOS pergunta se o Node pode aceitar conexões de entrada —
-aceite.
+On the first run macOS asks whether Node may accept incoming connections — accept.
 
-### 5. Abra no celular
+### 5. Open it on your phone
 
 ```bash
 npm run endereco
 ```
 
-### Modo básico no macOS
+### Basic mode on macOS
 
-Se preferir usar o YouTube Music no navegador em vez do app desktop, instale:
+If you would rather use YouTube Music in the browser instead of the desktop app,
+install:
 
 ```bash
 brew install nowplaying-cli
 ```
 
-Sem isso, o nome da faixa não aparece e os controles não funcionam nesse modo.
-No Linux o equivalente é `sudo apt install playerctl`.
+Without it the track name does not show up and the controls do not work in that
+mode. On Linux the equivalent is `sudo apt install playerctl`.
 
 ---
 
-## Instalar como app no celular
+## Installing as an app on your phone
 
-**iPhone** — no Safari, Compartilhar → Adicionar à Tela de Início.
+**iPhone** — in Safari, Share → Add to Home Screen.
 
-**Android** — o Chrome só instala PWA em contexto seguro, e aqui é HTTP num IP
-local. Duas saídas:
+**Android** — Chrome only installs a PWA from a secure context, and this is HTTP
+on a local IP. Two ways out:
 
-- Abra `chrome://flags/#unsafely-treat-insecure-origin-as-secure` no celular,
-  cadastre o endereço do servidor e reinicie o navegador.
-- Ou coloque atrás de um túnel com HTTPS válido (veja abaixo).
+- Open `chrome://flags/#unsafely-treat-insecure-origin-as-secure` on the phone,
+  register the server address, and restart the browser.
+- Or put it behind a tunnel with valid HTTPS (see below).
 
-## Acessar de fora de casa
+## Access from outside your home
 
-O servidor precisa continuar rodando no seu PC. **Hospedar em Vercel, Netlify ou
-qualquer nuvem não funciona**: as rotas da API falam com o player em `127.0.0.1`,
-que na nuvem é a máquina do provedor, não a sua. Lá só a busca funcionaria.
+The server has to keep running on your PC. **Hosting it on Vercel, Netlify or any
+cloud will not work**: the API routes talk to the player on `127.0.0.1`, which in
+the cloud is the provider's machine, not yours. Only search would work there.
 
-A solução é um túnel, que mantém o servidor na sua máquina e expõe um endereço
-público. O agente abre uma conexão de saída, então não é preciso abrir portas no
-roteador.
+The answer is a tunnel, which keeps the server on your machine and exposes a
+public address. The agent opens an outbound connection, so there is no need to
+open ports on your router.
 
 ### Cloudflare Tunnel
 
-Requer um domínio com DNS na Cloudflare. Você ganha HTTPS válido, o que também
-libera instalar o PWA no Android.
+Requires a domain with DNS on Cloudflare. You get valid HTTPS, which also unlocks
+installing the PWA on Android.
 
-Baixe o `cloudflared` ([releases](https://github.com/cloudflare/cloudflared/releases)),
-ou no Windows:
+Download `cloudflared` ([releases](https://github.com/cloudflare/cloudflared/releases)),
+or on Windows:
 
 ```powershell
 winget install --id Cloudflare.cloudflared -e
 ```
 
-No macOS:
+On macOS:
 
 ```bash
 brew install cloudflared
 ```
 
-Autorize e crie o túnel:
+Authorize and create the tunnel:
 
 ```bash
 cloudflared tunnel login
 cloudflared tunnel create remoteplayer
 ```
 
-Crie o `config.yml` em `~/.cloudflared/` (no Windows, `C:\Users\SEU_USUARIO\.cloudflared\`),
-trocando o ID pelo que o comando anterior imprimiu:
+Create `config.yml` in `~/.cloudflared/` (on Windows, `C:\Users\YOUR_USER\.cloudflared\`),
+replacing the ID with the one the previous command printed:
 
 ```yaml
-tunnel: SEU_TUNNEL_ID
-credentials-file: /caminho/para/SEU_TUNNEL_ID.json
+tunnel: YOUR_TUNNEL_ID
+credentials-file: /path/to/YOUR_TUNNEL_ID.json
 
 ingress:
-  - hostname: seu-subdominio.seu-dominio.com
+  - hostname: your-subdomain.your-domain.com
     service: http://localhost:8765
   - service: http_status:404
 ```
 
-Aponte o DNS e suba o túnel:
+Point the DNS and bring the tunnel up:
 
 ```bash
-cloudflared tunnel route dns remoteplayer seu-subdominio.seu-dominio.com
+cloudflared tunnel route dns remoteplayer your-subdomain.your-domain.com
 cloudflared tunnel run remoteplayer
 ```
 
-Use `--overwrite-dns` no comando de rota se o subdomínio já apontar para outro lugar.
+Use `--overwrite-dns` on the route command if the subdomain already points
+somewhere else.
 
-**Proteja o acesso.** Sem autenticação, qualquer pessoa que descobrir o endereço
-controla o som do seu PC. O Cloudflare Access resolve de graça: no painel Zero Trust,
-crie uma aplicação self-hosted para o subdomínio e uma política que só aceite o seu
-e-mail.
+**Protect the access.** Without authentication, anyone who finds the address
+controls your PC's sound. Cloudflare Access solves this for free: in the Zero
+Trust dashboard, create a self-hosted application for the subdomain and a policy
+that only accepts your e-mail.
 
 ### Tailscale
 
-Alternativa sem domínio próprio: `tailscale serve --bg 8765` cria uma rede privada
-entre seus aparelhos, sem expor nada na internet.
+An alternative with no domain of your own: `tailscale serve --bg 8765` creates a
+private network between your devices, without exposing anything on the internet.
 
-## Subir junto com o sistema
+## Starting with the system
 
 ### Windows
 
-Os scripts `iniciar.cmd` (com janela) e `iniciar-silencioso.vbs` (sem janela) sobem
-o servidor e o túnel juntos. Ambos usam o nome de túnel `remoteplayer` — troque se
-tiver usado outro.
+The scripts `iniciar.cmd` (with a window) and `iniciar-silencioso.vbs` (no window)
+bring up the server and the tunnel together. Both use the tunnel name
+`remoteplayer` — change it if you used another one.
 
-Para iniciar no login, coloque um atalho do `iniciar-silencioso.vbs` na pasta de
-Inicialização:
+To start it at login, put a shortcut to `iniciar-silencioso.vbs` in the Startup
+folder:
 
 ```powershell
 explorer shell:startup
@@ -246,71 +261,115 @@ explorer shell:startup
 
 ### macOS
 
-Use o `iniciar.sh`, passando o nome do túnel se tiver um:
+Use `iniciar.sh`, passing the tunnel name if you have one:
 
 ```bash
 chmod +x iniciar.sh
 TUNEL=mac ./iniciar.sh
 ```
 
-Para subir no login, instale o túnel como serviço e crie um LaunchAgent para o
-servidor:
+To start it at login, install the tunnel as a service and create a LaunchAgent for
+the server:
 
 ```bash
 sudo cloudflared service install
 ```
 
-## Rodar em mais de um computador
+## Running on more than one computer
 
-Cada máquina roda seu próprio servidor e precisa do seu próprio túnel, porque um
-túnel entrega para uma máquina só. Use um subdomínio por computador:
+Each machine runs its own server and needs its own tunnel, because one tunnel
+delivers to a single machine. Use one subdomain per computer:
 
 ```bash
 cloudflared tunnel create mac
-cloudflared tunnel route dns mac mac.seu-dominio.com
+cloudflared tunnel route dns mac mac.your-domain.com
 ```
 
-Aponte o `config.yml` do Mac para `http://localhost:8765` dele e pronto: cada
-endereço controla o player da máquina correspondente, e os dois podem ficar no ar
-ao mesmo tempo.
+Point the Mac's `config.yml` at its own `http://localhost:8765` and that is it:
+each address controls the player on the matching machine, and both can be up at
+the same time.
 
-## Variáveis de ambiente
+### One address for every machine
 
-| Variável | Para quê |
+Remembering one subdomain per computer gets old, and a PWA installed on your phone
+is pinned to a single address. `worker/` is a Cloudflare Worker that sits in front
+of all of them: it proxies to whichever machine a cookie names, and `?pc=<name>`
+switches. Add `?pc=mac` once on your phone and it stays on the Mac until you
+switch back.
+
+Give each machine its own hostname (`win.lauxen.dev`, `mac.lauxen.dev`), keep the
+pretty address for the Worker, and list them in `worker/wrangler.toml`:
+
+```toml
+[vars]
+ALVO_WIN = "https://win.example.com"
+ALVO_MAC = "https://mac.example.com"
+PADRAO = "win"
+
+[[routes]]
+pattern = "remote.example.com/*"
+zone_name = "example.com"
+```
+
+Every `ALVO_<NAME>` var becomes a machine, and the lowercased name is what goes in
+the URL. Deploy with:
+
+```bash
+cd worker
+npx wrangler deploy
+```
+
+If the selected machine is off, the Worker answers with a page offering the other
+ones instead of a Cloudflare error.
+
+**Protect it.** The Worker is now the only door, so put Cloudflare Access on the
+pretty hostname. If you also put Access on the per-machine hostnames — worth doing,
+since otherwise they stay reachable directly — create a service token and give it
+to the Worker so it can get through:
+
+```bash
+npx wrangler secret put ACCESS_ID
+npx wrangler secret put ACCESS_SECRET
+```
+
+## Environment variables
+
+| Variable | What for |
 |---|---|
-| `PORT` | Porta do servidor (padrão `8765`) |
-| `YTMD_TOKEN` | Token do API Server, se você manteve a autenticação ligada |
+| `PORT` | Server port (default `8765`) |
+| `YTMD_TOKEN` | API Server token, if you kept authentication on |
 
-## Estrutura
+## Structure
 
 ```
 app/
   page.jsx              interface
-  pagina.module.css     estilos
-  api/now/              faixa atual e modo ativo
+  pagina.module.css     styles
+  api/now/              current track and active mode
   api/cmd/[acao]/       playpause, next, prev, volup, voldown, mute
-  api/volume/           volume absoluto (modo completo)
-  api/seek/             posição na faixa (modo completo)
-  api/search/           busca no catálogo
-  api/play/             toca a música escolhida
+  api/volume/           absolute volume (full mode)
+  api/seek/             position within the track (full mode)
+  api/fila/             queue: read, reorder, skip to, remove (full mode)
+  api/search/           catalog search
+  api/play/             play the chosen track
 lib/
-  media.js              detecção e implementação dos dois modos
-  search.js             busca via ytmusic-api, com cache
-public/                 manifest, service worker e ícones
+  media.js              detection and implementation of both modes
+  search.js             search via ytmusic-api, with cache
+public/                 manifest, service worker and icons
 ```
 
-## Problemas comuns
+## Common problems
 
-**O celular não abre o endereço** — confira que ele está no Wi-Fi da casa e não nos
-dados móveis. Redes de convidados isolam os aparelhos e não funcionam. No Windows,
-confira o firewall (passo 4).
+**The phone will not open the address** — check that it is on the home Wi-Fi and
+not on mobile data. Guest networks isolate devices and will not work. On Windows,
+check the firewall (step 4).
 
-**Aparece "Teclas de mídia" em vez de "App desktop"** — o plugin API Server não está
-respondendo. Confira que o app desktop está aberto e que o Auth Strategy é **None**.
+**It says "Media keys" instead of "Desktop app"** — the API Server plugin is not
+responding. Check that the desktop app is open and that Auth Strategy is **None**.
 
-**O volume do slider não bate com o número** — o YouTube Music aplica uma curva de
-resposta própria, então o valor lido difere do enviado. O slider mostra o que você
-definiu.
+**The slider volume does not match the number** — YouTube Music applies its own
+response curve, so the value read back differs from the one sent. The slider shows
+what you set.
 
-**O endereço mudou** — o IP é atribuído pelo roteador e pode trocar ao reiniciar.
-Rode `npm run endereco` de novo, ou fixe o IP nas configurações do roteador.
+**The address changed** — the IP is assigned by the router and can change on
+reboot. Run `npm run endereco` again, or reserve the IP in your router settings.

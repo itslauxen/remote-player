@@ -74,6 +74,13 @@ function Icone({ nome, tamanho = 24 }) {
         <path d="m17 15 4 3-4 3z" fill="currentColor" />
       </>
     ),
+    dispositivos: (
+      <>
+        <rect x="2" y="4" width="13" height="9" rx="1.5" />
+        <path d="M8.5 13v4M6 17h5" />
+        <rect x="17" y="9" width="5" height="11" rx="1.5" />
+      </>
+    ),
     fechar: <path d="M6 6l12 12M18 6L6 18" />,
     seta: <path d="m6 9 6 6 6-6" />,
     pegar: <path d="M5 9h14M5 15h14" />,
@@ -93,10 +100,11 @@ function Icone({ nome, tamanho = 24 }) {
   return <svg {...comum}>{desenhos[nome]}</svg>;
 }
 
-const BARRAS = Array.from({ length: 32 }, (_, i) => {
-  const centro = 1 - Math.abs(i - 15.5) / 15.5;
+const BARRAS = Array.from({ length: 48 }, (_, i) => {
+  const centro = 1 - Math.abs(i - 23.5) / 23.5;
   return {
-    altura: 22 + centro * 58 + ((i * 37) % 19),
+    // Os dois modulos quebram a simetria e dao cara de onda em vez de lente.
+    altura: 16 + centro * 30 + ((i * 37) % 23) + ((i * 53) % 17),
     duracao: 0.62 + ((i * 13) % 9) / 10,
     atraso: ((i * 29) % 17) / 20,
   };
@@ -106,15 +114,18 @@ function Ondas({ classe, tocando }) {
   return (
     <div className={classe} aria-hidden>
       {BARRAS.map((b, i) => (
-        <span
-          key={i}
-          style={{
-            '--alt': `${b.altura}%`,
-            animationDuration: `${b.duracao}s`,
-            animationDelay: `${b.atraso}s`,
-            animationPlayState: tocando ? 'running' : 'paused',
-          }}
-        />
+        // O span carrega a mascara de segmentos e nao escala, senao os tracinhos
+        // esticariam junto com a barra.
+        <span key={i}>
+          <i
+            style={{
+              '--alt': `${b.altura}%`,
+              animationDuration: `${b.duracao}s`,
+              animationDelay: `${b.atraso}s`,
+              animationPlayState: tocando ? 'running' : 'paused',
+            }}
+          />
+        </span>
       ))}
     </div>
   );
@@ -153,6 +164,8 @@ export default function Pagina() {
   const [arrasto, setArrasto] = useState(null);
   const [ondas, setOndas] = useState(false);
   const [somAberto, setSomAberto] = useState(false);
+  // null = procurando, false = sem Worker na frente (acesso direto a esta maquina)
+  const [dispositivos, setDispositivos] = useState(null);
   const arrastando = useRef(false);
   const volumeFixado = useRef(false);
   const toque = useRef(null);
@@ -167,7 +180,11 @@ export default function Pagina() {
   const rolagem = useRef({ total: 0, quando: 0, disparo: 0 });
   const rolagemX = useRef({ total: 0, quando: 0, disparo: 0 });
   const arrastandoFila = useRef(false);
+  const gestoItem = useRef(false);
+  const toqueBusca = useRef(null);
+  const buscaConsumida = useRef(false);
   const somArrasto = useRef(null);
+  const somMoveu = useRef(false);
   const ultimoVolume = useRef(0);
   const envioVolume = useRef(0);
 
@@ -221,6 +238,27 @@ export default function Pagina() {
     }, 5000);
     return () => clearInterval(id);
   }, [vista, carregarFila]);
+
+  // Quem responde /__dispositivos e o Worker, nao este servidor. Acessando a
+  // maquina direto a rota nao existe, e a tela explica isso.
+  useEffect(() => {
+    if (aba !== 'config') return;
+    let vivo = true;
+    setDispositivos(null);
+    (async () => {
+      try {
+        const r = await fetch('/__dispositivos', { cache: 'no-store' });
+        if (!r.ok) throw new Error('sem worker');
+        const d = await r.json();
+        if (vivo) setDispositivos(d);
+      } catch {
+        if (vivo) setDispositivos(false);
+      }
+    })();
+    return () => {
+      vivo = false;
+    };
+  }, [aba]);
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -277,13 +315,21 @@ export default function Pagina() {
     setVista((v) => (v === 'foco' ? 'normal' : 'foco'));
   }
 
-  const TELAS = ['tocando', 'busca'];
+  const TELAS = ['tocando', 'busca', 'config'];
 
   function irPara(nome) {
     if (nome === 'busca') {
       setVista('normal');
       setAba('busca');
+      // O botao some na busca, mas a cortina vive fora dele e ficaria
+      // cobrindo a tela inteira, invisivel.
+      setSomAberto(false);
       setTimeout(() => campo.current?.focus(), 80);
+      return;
+    }
+    if (nome === 'config') {
+      setVista('normal');
+      setAba('config');
       return;
     }
     setAba('tocando');
@@ -291,13 +337,13 @@ export default function Pagina() {
   }
 
   function telaAtual() {
-    if (aba === 'busca') return 'busca';
+    if (aba === 'busca' || aba === 'config') return aba;
     return vista === 'fila' ? 'fila' : 'tocando';
   }
 
   function navegar(passo) {
     if (vista === 'fila') return setVista('normal');
-    const base = aba === 'busca' ? 'busca' : 'tocando';
+    const base = TELAS.includes(aba) ? aba : 'tocando';
     const i = TELAS.indexOf(base);
     irPara(TELAS[(i + passo + TELAS.length) % TELAS.length]);
   }
@@ -364,6 +410,49 @@ export default function Pagina() {
     }
   }
 
+  async function enfileirar(item) {
+    navigator.vibrate?.(16);
+    const d = await chamar('/api/enfileirar', { id: item.id });
+    avisar(d.ok ? `${item.titulo} na fila` : d.erro || 'não consegui enfileirar', d.ok);
+    if (d.ok) setTimeout(carregarFila, 900);
+  }
+
+  function inicioBuscaToque(e, item) {
+    buscaConsumida.current = false;
+    toqueBusca.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, id: item.id };
+  }
+
+  // Arrastar o resultado para a direita enfileira sem trocar o que toca agora.
+  function moveBuscaToque(e, item) {
+    const t = toqueBusca.current;
+    if (!t || t.id !== item.id || t.usado) return;
+    const dx = e.touches[0].clientX - t.x;
+    const dy = e.touches[0].clientY - t.y;
+    if (dx < 0 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    if (dx > 70) {
+      t.usado = true;
+      buscaConsumida.current = true;
+      e.currentTarget.style.transform = '';
+      enfileirar(item);
+      return;
+    }
+    e.currentTarget.style.transform = `translateX(${Math.min(dx, 90)}px)`;
+  }
+
+  function fimBuscaToque(e) {
+    e.currentTarget.style.transform = '';
+    toqueBusca.current = null;
+  }
+
+  function cliqueResultado(item) {
+    // O clique vem depois do touchend; se o arrasto ja enfileirou, ignora.
+    if (buscaConsumida.current) {
+      buscaConsumida.current = false;
+      return;
+    }
+    tocar(item);
+  }
+
   async function pular(item) {
     if (deslizado >= 0) return setDeslizado(-1);
     navigator.vibrate?.(12);
@@ -388,11 +477,19 @@ export default function Pagina() {
   function inicioListaToque(e) {
     if (arrasto) return;
     const t = e.touches[0];
+    gestoItem.current = false;
     toqueLista.current = { y: t.clientY, x: t.clientX, topo: lista.current?.scrollTop ?? 0 };
   }
 
   function fimListaToque(e) {
     if (!toqueLista.current || arrasto) return;
+    // Se o gesto foi abrir ou fechar a lixeira de um item, ele ja foi consumido:
+    // olhar so o deslizado nao basta, porque o proprio move ja zerou ele.
+    if (gestoItem.current) {
+      gestoItem.current = false;
+      toqueLista.current = null;
+      return;
+    }
     const t = e.changedTouches[0];
     const dy = t.clientY - toqueLista.current.y;
     const dx = t.clientX - toqueLista.current.x;
@@ -418,8 +515,15 @@ export default function Pagina() {
     const dx = e.touches[0].clientX - toqueItem.current.x;
     const dy = e.touches[0].clientY - toqueItem.current.y;
     if (Math.abs(dx) < Math.abs(dy) * 1.5) return;
-    if (dx < -24) setDeslizado(item.indice);
-    else if (dx > 24) setDeslizado(-1);
+    if (dx < -24) {
+      gestoItem.current = true;
+      setDeslizado(item.indice);
+    } else if (dx > 24) {
+      // So consome o gesto se havia mesmo uma lixeira aberta para fechar; senao
+      // arrastar para a direita continua fechando a fila, como antes.
+      if (deslizado !== -1) gestoItem.current = true;
+      setDeslizado(-1);
+    }
   }
 
   function inicioArrasto(e, item, posicao) {
@@ -490,24 +594,31 @@ export default function Pagina() {
     chamar('/api/volume', { valor });
   }
 
+  // O arrasto vale em qualquer ponto do menu, inclusive sobre o botao de mudo:
+  // se o dedo andou, o clique dele e descartado no fim.
   function inicioSom(e) {
-    if (e.target.closest('button')) return;
     e.currentTarget.setPointerCapture?.(e.pointerId);
-    somArrasto.current = { y: e.clientY, base: volume ?? 0 };
+    somArrasto.current = { y: e.clientY, base: volume ?? 0, moveu: false };
   }
 
   function moveSom(e) {
     if (!somArrasto.current) return;
     e.preventDefault();
     const dy = somArrasto.current.y - e.clientY;
+    if (Math.abs(dy) > 4) somArrasto.current.moveu = true;
     const novo = Math.round(Math.min(100, Math.max(0, somArrasto.current.base + (dy / 170) * 100)));
     if (novo !== ultimoVolume.current) enviarVolume(novo);
   }
 
   function fimSom() {
     if (!somArrasto.current) return;
+    const moveu = somArrasto.current.moveu;
     somArrasto.current = null;
     envioVolume.current = 0;
+    // Sem movimento nao houve mudanca: mandar ultimoVolume aqui reaplicaria um
+    // valor velho por cima do atual.
+    if (!moveu) return;
+    somMoveu.current = true;
     chamar('/api/volume', { valor: ultimoVolume.current });
   }
 
@@ -540,7 +651,8 @@ export default function Pagina() {
       >
         <header className={`${styles.topo} ${vista === 'foco' ? styles.topoOculto : ''}`}>
           <div className={styles.topoEsquerda}>
-            <div className={styles.volumeCaixa}>
+            {/* Na busca o volume nao aparece: nada ali depende dele. */}
+            <div className={aba === 'busca' ? styles.oculto : styles.volumeCaixa}>
               <button
                 className={`${styles.volumeBotao} ${somAberto ? styles.volumeBotaoAtivo : ''}`}
                 onClick={() => setSomAberto((v) => !v)}
@@ -587,7 +699,13 @@ export default function Pagina() {
 
                   <button
                     className={`${styles.somBotao} ${faixa?.mudo ? styles.somMudo : ''}`}
-                    onClick={() => comando('mute')}
+                    onClick={() => {
+                      if (somMoveu.current) {
+                        somMoveu.current = false;
+                        return;
+                      }
+                      comando('mute');
+                    }}
                     aria-label="Alternar mudo"
                   >
                     <Icone nome={faixa?.mudo ? 'mudo' : 'som'} tamanho={18} />
@@ -601,7 +719,9 @@ export default function Pagina() {
             <nav className={styles.navTopo}>
               <span
                 className={styles.navBolha}
-                style={{ transform: `translateX(${telaAtual() === 'busca' ? 40 : 0}px)` }}
+                style={{
+                  transform: `translateX(${{ busca: 40, config: 80 }[telaAtual()] ?? 0}px)`,
+                }}
               />
               <button
                 className={telaAtual() === 'tocando' ? styles.navAtivo : undefined}
@@ -616,6 +736,13 @@ export default function Pagina() {
                 aria-label="Buscar"
               >
                 <Icone nome="busca" tamanho={18} />
+              </button>
+              <button
+                className={telaAtual() === 'config' ? styles.navAtivo : undefined}
+                onClick={() => irPara('config')}
+                aria-label="Dispositivos"
+              >
+                <Icone nome="dispositivos" tamanho={18} />
               </button>
             </nav>
           </div>
@@ -765,7 +892,15 @@ export default function Pagina() {
 
           <div className={styles.resultados}>
             {resultados.map((item) => (
-              <button key={item.id} className={styles.item} onClick={() => tocar(item)}>
+              <button
+                key={item.id}
+                className={styles.item}
+                onClick={() => cliqueResultado(item)}
+                onTouchStart={(e) => inicioBuscaToque(e, item)}
+                onTouchMove={(e) => moveBuscaToque(e, item)}
+                onTouchEnd={fimBuscaToque}
+                onTouchCancel={fimBuscaToque}
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={item.capa} alt="" loading="lazy" />
                 <span className={styles.coluna}>
@@ -780,6 +915,55 @@ export default function Pagina() {
           </div>
 
           {notaBusca ? <p className={styles.nota}>{notaBusca}</p> : null}
+        </section>
+
+        <section className={aba === 'config' ? styles.painelConfig : styles.oculto}>
+          <h2 className={styles.tituloConfig}>Dispositivos</h2>
+
+          {dispositivos === null ? <p className={styles.nota}>Procurando…</p> : null}
+
+          {dispositivos === false ? (
+            <p className={styles.nota}>
+              A troca de dispositivo só aparece pelo endereço compartilhado. Você abriu esta
+              máquina direto, então é ela que está tocando.
+            </p>
+          ) : null}
+
+          {dispositivos ? (
+            <>
+              <div className={styles.listaDispositivos}>
+                {dispositivos.dispositivos.map((d) => {
+                  const atual = d.nome === dispositivos.atual;
+                  return (
+                    <button
+                      key={d.nome}
+                      className={`${styles.dispositivo} ${atual ? styles.dispositivoAtual : ''}`}
+                      onClick={() => {
+                        if (!atual) window.location.href = `/?pc=${d.nome}`;
+                      }}
+                    >
+                      <span
+                        className={`${styles.ponto} ${d.online ? styles.pontoNoAr : ''}`}
+                        aria-hidden
+                      />
+                      <span className={styles.coluna}>
+                        <span className={styles.itemTitulo}>{d.nome}</span>
+                        <span className={styles.itemSub}>
+                          {d.online ? 'no ar' : 'fora do ar'}
+                          {d.nome === dispositivos.padrao ? ' · padrão' : ''}
+                        </span>
+                      </span>
+                      {atual ? <span className={styles.selo}>atual</span> : null}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className={styles.nota}>
+                Para acrescentar ou tirar uma máquina, mexa nas variáveis ALVO_ em
+                worker/wrangler.toml e publique o Worker de novo.
+              </p>
+            </>
+          ) : null}
         </section>
 
       </main>
@@ -799,7 +983,6 @@ export default function Pagina() {
           onTouchStart={inicioListaToque}
           onTouchEnd={fimListaToque}
         >
-          <span className={styles.puxadorBarra} />
           <div className={styles.gavetaLinha}>
             <span className={styles.gavetaTitulo}>
               A seguir
