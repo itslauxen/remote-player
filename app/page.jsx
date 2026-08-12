@@ -130,6 +130,8 @@ export default function Pagina() {
   const ultimoAlvo = useRef(-1);
   const gestou = useRef(0);
   const rolagem = useRef({ total: 0, quando: 0, disparo: 0 });
+  const rolagemX = useRef({ total: 0, quando: 0, disparo: 0 });
+  const arrastandoFila = useRef(false);
 
   const alvoDe = useCallback(
     (a) =>
@@ -218,7 +220,46 @@ export default function Pagina() {
     setVista((v) => (v === 'foco' ? 'normal' : 'foco'));
   }
 
+  const TELAS = ['tocando', 'fila', 'busca'];
+
+  function irPara(nome) {
+    if (nome === 'busca') {
+      setVista('normal');
+      setAba('busca');
+      setTimeout(() => campo.current?.focus(), 80);
+      return;
+    }
+    setAba('tocando');
+    setVista(nome === 'fila' ? 'fila' : 'normal');
+  }
+
+  function telaAtual() {
+    if (aba === 'busca') return 'busca';
+    return vista === 'fila' ? 'fila' : 'tocando';
+  }
+
+  function navegar(passo) {
+    const i = TELAS.indexOf(telaAtual());
+    irPara(TELAS[(i + passo + TELAS.length) % TELAS.length]);
+  }
+
+  function aoRolarLado(e) {
+    if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+    const agora = Date.now();
+    const r = rolagemX.current;
+    if (agora - r.quando > 260) r.total = 0;
+    r.quando = agora;
+    if (agora - r.disparo < 700) return;
+    r.total += e.deltaX;
+    if (Math.abs(r.total) < 90) return;
+    const passo = r.total > 0 ? 1 : -1;
+    r.total = 0;
+    r.disparo = agora;
+    navegar(passo);
+  }
+
   function aoRolar(e) {
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return aoRolarLado(e);
     const agora = Date.now();
     const r = rolagem.current;
     if (agora - r.quando > 260) r.total = 0;
@@ -305,19 +346,18 @@ export default function Pagina() {
   }
 
   function inicioItemToque(e, item) {
-    toqueItem.current = { x: e.touches[0].clientX, indice: item.indice, moveu: false };
+    if (arrastandoFila.current || e.target.closest(`.${styles.pegador}`)) return;
+    toqueItem.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, indice: item.indice };
   }
 
   function moveItemToque(e, item) {
+    if (arrastandoFila.current) return;
     if (!toqueItem.current || toqueItem.current.indice !== item.indice) return;
     const dx = e.touches[0].clientX - toqueItem.current.x;
-    if (dx < -20) {
-      toqueItem.current.moveu = true;
-      setDeslizado(item.indice);
-    } else if (dx > 20) {
-      toqueItem.current.moveu = true;
-      setDeslizado(-1);
-    }
+    const dy = e.touches[0].clientY - toqueItem.current.y;
+    if (Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    if (dx < -24) setDeslizado(item.indice);
+    else if (dx > 24) setDeslizado(-1);
   }
 
   function inicioArrasto(e, item, posicao) {
@@ -325,6 +365,8 @@ export default function Pagina() {
     e.preventDefault();
     e.currentTarget.setPointerCapture?.(e.pointerId);
     navigator.vibrate?.(14);
+    arrastandoFila.current = true;
+    toqueItem.current = null;
     setDeslizado(-1);
     const linha = e.currentTarget.closest(`.${styles.linhaFila}`);
     ultimoAlvo.current = posicao;
@@ -349,6 +391,7 @@ export default function Pagina() {
   }
 
   async function fimArrasto() {
+    arrastandoFila.current = false;
     if (!arrasto) return;
     const alvo = alvoDe(arrasto);
     const origem = arrasto.posicao;
@@ -396,7 +439,7 @@ export default function Pagina() {
       />
       <div className={styles.veu} />
 
-      <main className={styles.tela}>
+      <main className={styles.tela} onWheel={aoRolarLado}>
         <header className={`${styles.topo} ${vista === 'foco' ? styles.topoOculto : ''}`}>
           <span className={styles.marca}>Controle</span>
           <div className={styles.topoDireita}>
@@ -406,31 +449,28 @@ export default function Pagina() {
             </span>
             <nav className={styles.navTopo}>
               <button
-                className={aba === 'tocando' ? styles.navAtivo : undefined}
-                onClick={() => setAba('tocando')}
+                className={telaAtual() === 'tocando' ? styles.navAtivo : undefined}
+                onClick={() => irPara('tocando')}
                 aria-label="Tocando"
               >
                 <Icone nome="onda" tamanho={18} />
               </button>
-              <button
-                className={aba === 'busca' ? styles.navAtivo : undefined}
-                onClick={() => {
-                  setAba('busca');
-                  setTimeout(() => campo.current?.focus(), 80);
-                }}
-                aria-label="Buscar"
-              >
-                <Icone nome="busca" tamanho={18} />
-              </button>
               {completo ? (
                 <button
-                  className={vista === 'fila' ? styles.navAtivo : undefined}
-                  onClick={() => setVista((v) => (v === 'fila' ? 'normal' : 'fila'))}
+                  className={telaAtual() === 'fila' ? styles.navAtivo : undefined}
+                  onClick={() => irPara(telaAtual() === 'fila' ? 'tocando' : 'fila')}
                   aria-label="Fila"
                 >
                   <Icone nome="fila" tamanho={18} />
                 </button>
               ) : null}
+              <button
+                className={telaAtual() === 'busca' ? styles.navAtivo : undefined}
+                onClick={() => irPara('busca')}
+                aria-label="Buscar"
+              >
+                <Icone nome="busca" tamanho={18} />
+              </button>
             </nav>
           </div>
         </header>
@@ -698,14 +738,15 @@ export default function Pagina() {
                       : undefined
                 }
               >
-                <button
-                  className={styles.botaoLixeira}
-                  onClick={() => remover(item)}
-                  aria-label={`Remover ${item.titulo} da fila`}
-                  tabIndex={deslizado === item.indice ? 0 : -1}
-                >
-                  <Icone nome="lixeira" tamanho={20} />
-                </button>
+                {deslizado === item.indice ? (
+                  <button
+                    className={styles.botaoLixeira}
+                    onClick={() => remover(item)}
+                    aria-label={`Remover ${item.titulo} da fila`}
+                  >
+                    <Icone nome="lixeira" tamanho={20} />
+                  </button>
+                ) : null}
 
                 <div
                   className={`${styles.deslizavel} ${

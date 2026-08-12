@@ -899,30 +899,6 @@
     justify-content: center;
   }
 
-  .passo:hover {
-    color: var(--tinta);
-    background: #ffffff14;
-  }
-
-  .tocar:hover {
-    transform: scale(1.04);
-  }
-
-  .somBotao:hover,
-  .navTopo button:hover {
-    color: var(--tinta);
-    background: #ffffff1a;
-  }
-
-  .item:hover {
-    background: #ffffff14;
-  }
-
-  .passos button:hover {
-    color: var(--tinta);
-    background: #ffffff26;
-  }
-
   .gaveta {
     left: auto;
     right: 0;
@@ -938,6 +914,9 @@
     transform: translate(0, 0);
   }
 
+}
+
+@media (hover: hover) and (pointer: fine) {
   .pegador,
   .removerDireto {
     opacity: 0;
@@ -975,6 +954,30 @@
 
   .palco:hover .capa {
     transform: scale(1.01);
+  }
+
+  .passo:hover {
+    color: var(--tinta);
+    background: #ffffff14;
+  }
+
+  .tocar:hover {
+    transform: scale(1.04);
+  }
+
+  .somBotao:hover,
+  .navTopo button:hover {
+    color: var(--tinta);
+    background: #ffffff1a;
+  }
+
+  .item:hover {
+    background: #ffffff14;
+  }
+
+  .passos button:hover {
+    color: var(--tinta);
+    background: #ffffff26;
   }
 }
 
@@ -1085,5 +1088,13 @@
 
   .gavetaAberta {
     transform: translate(0, 0);
+  }
+
+  .gavetaLista {
+    padding-bottom: 12px;
+  }
+
+  .abas {
+    padding-bottom: 0;
   }
 }
