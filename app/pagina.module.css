@@ -80,6 +80,40 @@
   -webkit-backdrop-filter: blur(12px);
 }
 
+.topoDireita {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.navTopo {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 999px;
+  background: #ffffff0f;
+  border: 1px solid #ffffff1f;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.navTopo button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  color: var(--tinta-fraca);
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.navAtivo {
+  color: #04222a !important;
+  background: var(--acento);
+}
+
 .ponto {
   width: 6px;
   height: 6px;
@@ -391,7 +425,11 @@
   text-transform: uppercase;
 }
 
-.modoFoco .topo,
+.topoOculto {
+  opacity: 0;
+  pointer-events: none;
+}
+
 .modoFoco .vidro,
 .modoFoco .rodapeTocando {
   opacity: 0;
@@ -399,16 +437,31 @@
 }
 
 .modoFoco .vidro {
-  transform: translateY(20px);
+  transform: translateY(24px);
 }
 
-.modoFoco .capa {
-  max-height: 74vh;
-  border-radius: 28px;
+.modoFoco .palco {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 3dvh 3vw;
+  z-index: 5;
+}
+
+.modoFoco .capa,
+.modoFoco .capaVazia {
+  width: auto;
+  height: auto;
+  max-height: 94dvh;
+  max-width: 94vw;
+  border-radius: 20px;
+  box-shadow: 0 40px 90px #000000b3;
 }
 
 .modoFoco .capaVazia {
-  width: 74vh;
+  width: min(94dvh, 94vw);
+  height: min(94dvh, 94vw);
 }
 
 .modoFila .vidro {
@@ -744,6 +797,130 @@
   color: var(--acento);
 }
 
+@media (min-width: 860px) {
+  .tela {
+    max-width: 1160px;
+    padding: calc(22px + env(safe-area-inset-top)) 40px 0;
+  }
+
+  .topo {
+    margin-bottom: 0;
+  }
+
+  .navTopo {
+    display: flex;
+  }
+
+  .abas {
+    display: none;
+  }
+
+  .conteudo {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 56px;
+  }
+
+  .palco {
+    flex: 0 0 auto;
+  }
+
+  .capa,
+  .capaVazia {
+    max-height: min(64dvh, 560px);
+    width: auto;
+    border-radius: 28px;
+  }
+
+  .capaVazia {
+    width: min(64dvh, 560px);
+  }
+
+  .vidro {
+    flex: 0 1 420px;
+    align-self: center;
+    margin-top: 0;
+    padding: 30px 32px 22px;
+    border-radius: 26px;
+  }
+
+  .identidade {
+    text-align: left;
+    margin-bottom: 22px;
+  }
+
+  .faixa {
+    font-size: 26px;
+  }
+
+  .artista {
+    font-size: 15px;
+  }
+
+  .controles {
+    justify-content: flex-start;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+
+  .puxador {
+    justify-content: flex-start;
+  }
+
+  .nota {
+    text-align: left;
+  }
+
+  .passo:hover {
+    color: var(--tinta);
+    background: #ffffff14;
+  }
+
+  .tocar:hover {
+    transform: scale(1.04);
+  }
+
+  .somBotao:hover,
+  .navTopo button:hover {
+    color: var(--tinta);
+    background: #ffffff1a;
+  }
+
+  .item:hover {
+    background: #ffffff14;
+  }
+
+  .passos button:hover {
+    color: var(--tinta);
+    background: #ffffff26;
+  }
+
+  .gaveta {
+    left: auto;
+    right: 0;
+    top: 0;
+    width: 440px;
+    max-height: 100dvh;
+    border-radius: 28px 0 0 28px;
+    border-right: 0;
+    transform: translate(100%, 0);
+  }
+
+  .gavetaAberta {
+    transform: translate(0, 0);
+  }
+
+  .pegador {
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+
+  .linhaFila:hover .pegador {
+    opacity: 1;
+  }
+}
+
 @media (orientation: landscape) and (max-height: 620px) {
   .tela {
     max-width: 100%;
@@ -845,12 +1022,6 @@
 
   .instalar {
     display: none;
-  }
-
-  .modoFoco .capa,
-  .modoFoco .capaVazia {
-    width: 100vw;
-    object-fit: cover;
   }
 
   .gaveta {
