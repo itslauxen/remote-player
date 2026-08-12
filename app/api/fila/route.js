@@ -52,11 +52,29 @@ export async function PATCH(req) {
 }
 
 export async function DELETE(req) {
-  const n = inteiro(new URL(req.url).searchParams.get('indice'));
+  const url = new URL(req.url);
+  const backend = await obterBackend();
+
+  // ?tudo=1 esvazia o que vem depois da faixa atual. De tras para a frente,
+  // porque remover um item puxa os indices seguintes.
+  if (url.searchParams.get('tudo')) {
+    try {
+      const fila = await backend.fila();
+      if (!fila) {
+        return Response.json({ ok: false, erro: 'a fila so aparece no modo app desktop' });
+      }
+      const depois = fila.itens.filter((_, i) => i > fila.atual);
+      for (const item of depois.reverse()) await backend.remover(item.indice);
+      return Response.json({ ok: true, erro: '' });
+    } catch (e) {
+      return Response.json({ ok: false, erro: String(e.message || e).slice(0, 120) });
+    }
+  }
+
+  const n = inteiro(url.searchParams.get('indice'));
   if (n === null) {
     return Response.json({ ok: false, erro: 'indice invalido' }, { status: 400 });
   }
-  const backend = await obterBackend();
   try {
     const ok = await backend.remover(n);
     return Response.json({ ok, erro: ok ? '' : 'nao consegui remover' });

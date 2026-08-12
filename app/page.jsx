@@ -97,6 +97,7 @@ function Icone({ nome, tamanho = 24 }) {
       </>
     ),
     fechar: <path d="M6 6l12 12M18 6L6 18" />,
+    mais: <path d="M12 5v14M5 12h14" />,
     seta: <path d="m6 9 6 6 6-6" />,
     pegar: <path d="M5 9h14M5 15h14" />,
     equalizador: (
@@ -162,7 +163,8 @@ async function chamar(url, corpo, metodo) {
   }
 }
 
-const ALTURA_ITEM = 68;
+// Altura da linha da fila (64px) mais o respiro entre linhas.
+const ALTURA_ITEM = 66;
 
 export default function Pagina() {
   const [aba, setAba] = useState('tocando');
@@ -172,6 +174,7 @@ export default function Pagina() {
   const [termo, setTermo] = useState('');
   const [resultados, setResultados] = useState([]);
   const [notaBusca, setNotaBusca] = useState('');
+  const [recentes, setRecentes] = useState([]);
   const [promptPwa, setPromptPwa] = useState(null);
   const [volume, setVolume] = useState(null);
   const [fila, setFila] = useState({ itens: [], atual: -1, erro: '' });
@@ -203,17 +206,24 @@ export default function Pagina() {
   const ultimoVolume = useRef(0);
   const envioVolume = useRef(0);
 
+  // A lista mostra so o que vem depois da faixa atual, entao arrastar tambem
+  // nao pode passar para tras dela.
   const alvoDe = useCallback(
     (a) =>
       Math.min(
         fila.itens.length - 1,
-        Math.max(0, a.posicao + Math.round(a.dy / (a.altura || ALTURA_ITEM))),
+        Math.max(
+          fila.atual >= 0 ? fila.atual + 1 : 0,
+          a.posicao + Math.round(a.dy / (a.altura || ALTURA_ITEM)),
+        ),
       ),
-    [fila.itens.length],
+    [fila.itens.length, fila.atual],
   );
 
   const completo = !!faixa?.completo;
   const aSeguir = fila.atual >= 0 ? fila.itens[fila.atual + 1] : null;
+  const naFila = fila.atual >= 0 ? fila.itens[fila.atual] : null;
+  const proximos = fila.atual >= 0 ? fila.itens.length - fila.atual - 1 : fila.itens.length;
 
   const avisar = useCallback((texto, ok) => {
     setEstado({ texto, ok });
@@ -282,6 +292,12 @@ export default function Pagina() {
       vivo = false;
     };
   }, [aba]);
+
+  useEffect(() => {
+    try {
+      setRecentes(JSON.parse(localStorage.getItem('buscasRecentes') || '[]'));
+    } catch {}
+  }, []);
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -416,17 +432,35 @@ export default function Pagina() {
     setTimeout(atualizar, 350);
   }
 
-  async function buscar(e) {
+  function guardarRecente(q) {
+    setRecentes((r) => {
+      const novo = [q, ...r.filter((x) => x.toLowerCase() !== q.toLowerCase())].slice(0, 6);
+      try {
+        localStorage.setItem('buscasRecentes', JSON.stringify(novo));
+      } catch {}
+      return novo;
+    });
+  }
+
+  async function buscar(e, direto) {
     e?.preventDefault();
-    if (!termo.trim()) return;
+    const q = (direto ?? termo).trim();
+    if (!q) return;
     campo.current?.blur();
     setNotaBusca('Buscando...');
     setResultados([]);
-    const d = await chamar(`/api/search?q=${encodeURIComponent(termo)}`);
+    const d = await chamar(`/api/search?q=${encodeURIComponent(q)}`);
     if (d.erro) return setNotaBusca(d.erro);
     if (!d.itens?.length) return setNotaBusca('Nada encontrado para esse termo.');
     setResultados(d.itens);
     setNotaBusca('');
+    guardarRecente(q);
+  }
+
+  // Os chips de busca recente pesquisam na hora, sem redigitar.
+  function buscarRecente(q) {
+    setTermo(q);
+    buscar(undefined, q);
   }
 
   async function tocar(item) {
@@ -501,6 +535,15 @@ export default function Pagina() {
     setFila((f) => ({ ...f, itens: f.itens.filter((x) => x.indice !== item.indice) }));
     const d = await chamar(`/api/fila?indice=${item.indice}`, undefined, 'DELETE');
     if (!d.ok) avisar(d.erro || 'não consegui remover', false);
+    setTimeout(carregarFila, 600);
+  }
+
+  async function limparFila() {
+    navigator.vibrate?.(16);
+    setDeslizado(-1);
+    setFila((f) => ({ ...f, itens: f.atual >= 0 ? f.itens.slice(0, f.atual + 1) : [] }));
+    const d = await chamar('/api/fila?tudo=1', undefined, 'DELETE');
+    if (!d.ok) avisar(d.erro || 'não consegui limpar', false);
     setTimeout(carregarFila, 600);
   }
 
@@ -681,8 +724,15 @@ export default function Pagina() {
       >
         <header className={`${styles.topo} ${vista === 'foco' ? styles.topoOculto : ''}`}>
           <div className={styles.topoEsquerda}>
-            {/* Na busca o volume nao aparece: nada ali depende dele. */}
-            <div className={aba === 'busca' ? styles.oculto : styles.volumeCaixa}>
+            {/* Na busca o volume nao aparece: nada ali depende dele. Deitado no
+                modo completo quem manda e o trilho da borda direita. */}
+            <div
+              className={
+                aba === 'busca'
+                  ? styles.oculto
+                  : `${styles.volumeCaixa} ${completo ? styles.volumeCaixaComTrilho : ''}`
+              }
+            >
               <button
                 className={`${styles.volumeBotao} ${somAberto ? styles.volumeBotaoAtivo : ''}`}
                 onClick={() => setSomAberto((v) => !v)}
@@ -803,10 +853,22 @@ export default function Pagina() {
               {ondas ? <Ondas classe={styles.ondasPalco} tocando={faixa?.tocando} /> : null}
             </div>
 
+            {/* Na capa sangrada o cabecalho some; a pill diz como voltar. */}
+            {vista === 'foco' ? (
+              <div className={styles.dicaVoltar}>
+                <span className={styles.setaCima}>
+                  <Icone nome="seta" tamanho={14} />
+                </span>
+                arraste para cima para voltar
+              </div>
+            ) : null}
+
             <div className={styles.vidro}>
               {ondas ? <Ondas classe={styles.ondasTopo} tocando={faixa?.tocando} /> : null}
 
               <div className={styles.identidade}>
+                {/* So aparece deitado, como titulo da coluna de texto. */}
+                <div className={styles.rotuloTocando}>tocando agora</div>
                 <div className={`${styles.faixa} ${faixa?.titulo ? '' : styles.vazio}`}>
                   {faixa?.titulo || 'Nada tocando'}
                 </div>
@@ -835,7 +897,8 @@ export default function Pagina() {
                   />
                   <div className={styles.tempos}>
                     <span>{tempo(faixa.posicao)}</span>
-                    <span>{tempo(faixa.duracao)}</span>
+                    {/* O lado direito mostra quanto falta, como num player. */}
+                    <span>−{tempo(Math.max(0, faixa.duracao - faixa.posicao))}</span>
                   </div>
                 </div>
               )}
@@ -865,7 +928,7 @@ export default function Pagina() {
                   onClick={() => comando('playpause')}
                   aria-label={faixa?.tocando ? 'Pausar' : 'Tocar'}
                 >
-                  <Icone nome={faixa?.tocando ? 'pausar' : 'tocar'} tamanho={28} />
+                  <Icone nome={faixa?.tocando ? 'pausar' : 'tocar'} tamanho={30} />
                 </button>
                 <button
                   className={styles.passo}
@@ -874,6 +937,8 @@ export default function Pagina() {
                 >
                   <Icone nome="proxima" tamanho={26} />
                 </button>
+                {/* So aparece deitado, separando transporte do equalizador. */}
+                <span className={styles.divisor} aria-hidden />
                 <button
                   className={`${styles.alternar} ${ondas ? styles.alternarAtivo : ''}`}
                   onClick={() => setOndas((v) => !v)}
@@ -887,11 +952,29 @@ export default function Pagina() {
               {/* So aparece deitado, onde sobra espaco embaixo dos botoes. */}
               {aSeguir ? (
                 <div className={styles.aSeguir}>
-                  <span className={styles.aSeguirRotulo}>A seguir</span>
-                  <span className={styles.aSeguirFaixa}>{aSeguir.titulo}</span>
-                  {aSeguir.artista ? (
-                    <span className={styles.aSeguirArtista}>{aSeguir.artista}</span>
-                  ) : null}
+                  <div className={styles.aSeguirTopo}>
+                    <span className={styles.aSeguirRotulo}>
+                      a seguir{proximos > 1 ? ` · ${proximos}` : ''}
+                    </span>
+                    <button className={styles.verFila} onClick={() => setVista('fila')}>
+                      ver fila
+                    </button>
+                  </div>
+                  <div className={styles.aSeguirCard}>
+                    {aSeguir.capa ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={aSeguir.capa} alt="" loading="lazy" />
+                    ) : null}
+                    <span className={styles.coluna}>
+                      <span className={styles.aSeguirFaixa}>{aSeguir.titulo}</span>
+                      {aSeguir.artista ? (
+                        <span className={styles.aSeguirArtista}>{aSeguir.artista}</span>
+                      ) : null}
+                    </span>
+                    {aSeguir.duracao ? (
+                      <span className={styles.duracao}>{aSeguir.duracao}</span>
+                    ) : null}
+                  </div>
                 </div>
               ) : null}
 
@@ -899,6 +982,11 @@ export default function Pagina() {
           </div>
 
           <div className={styles.rodapeTocando}>
+            {/* A sobra de baixo do 10a anuncia o gesto que abre a capa sangrada. */}
+            <div className={styles.dicaFoco}>
+              <Icone nome="seta" tamanho={14} />
+              arraste para baixo para ver só a capa
+            </div>
             <div
               className={`${styles.estado} ${estado ? (estado.ok ? styles.ok : styles.erro) : ''}`}
             >
@@ -916,30 +1004,138 @@ export default function Pagina() {
               </button>
             ) : null}
           </div>
+
+          {/* Trilho de volume na borda direita: so existe deitado, onde ele
+              substitui o menu flutuante. O arrasto reusa a mesma conta do menu. */}
+          {completo ? (
+            <div
+              className={styles.trilhoSom}
+              onPointerDown={inicioSom}
+              onPointerMove={moveSom}
+              onPointerUp={fimSom}
+              onPointerCancel={fimSom}
+            >
+              <div className={styles.trilhoBarra}>
+                <div className={styles.trilhoNivel} style={{ height: `${volume ?? 0}%` }} />
+              </div>
+              <button
+                className={`${styles.somBotao} ${faixa?.mudo ? styles.somMudo : ''}`}
+                onClick={() => {
+                  if (somMoveu.current) {
+                    somMoveu.current = false;
+                    return;
+                  }
+                  comando('mute');
+                }}
+                aria-label="Alternar mudo"
+              >
+                <Icone nome={faixa?.mudo ? 'mudo' : 'som'} tamanho={17} />
+              </button>
+            </div>
+          ) : null}
         </section>
 
         <section className={aba === 'busca' ? styles.painelBusca : styles.oculto}>
-          <form className={styles.campo} onSubmit={buscar}>
-            <span className={styles.lupa}>
-              <Icone nome="busca" tamanho={18} />
-            </span>
-            <input
-              ref={campo}
-              type="search"
-              value={termo}
-              onChange={(e) => setTermo(e.target.value)}
-              placeholder="Música, artista ou álbum"
-              enterKeyHint="search"
-              autoComplete="off"
-            />
-          </form>
+          <div className={styles.campoLinha}>
+            <form className={styles.campo} onSubmit={buscar}>
+              <span className={styles.lupa}>
+                <Icone nome="busca" tamanho={18} />
+              </span>
+              <input
+                ref={campo}
+                type="search"
+                value={termo}
+                onChange={(e) => setTermo(e.target.value)}
+                placeholder="Música, artista ou álbum"
+                enterKeyHint="search"
+                autoComplete="off"
+              />
+              {termo ? (
+                <button
+                  type="button"
+                  className={styles.campoLimpar}
+                  onClick={() => {
+                    setTermo('');
+                    campo.current?.focus();
+                  }}
+                  aria-label="Limpar busca"
+                >
+                  <Icone nome="fechar" tamanho={13} />
+                </button>
+              ) : null}
+            </form>
+            <button
+              className={styles.botaoFilaBusca}
+              onClick={() => setVista('fila')}
+              aria-label="Fila de reprodução"
+            >
+              <Icone nome="fila" tamanho={20} />
+            </button>
+          </div>
+
+          {recentes.length ? (
+            <div className={styles.recentes}>
+              {recentes.map((r) => (
+                <button key={r} className={styles.chip} onClick={() => buscarRecente(r)}>
+                  {r}
+                </button>
+              ))}
+            </div>
+          ) : null}
 
           <div className={styles.resultados}>
-            {resultados.map((item) => (
-              <button
+            {resultados.length ? (
+              <div className={styles.melhor}>
+                {resultados[0].capa ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={resultados[0].capa} alt="" loading="lazy" />
+                ) : null}
+                <span className={styles.coluna}>
+                  <span className={styles.melhorRotulo}>melhor resultado</span>
+                  <span className={styles.melhorTitulo}>{resultados[0].titulo}</span>
+                  <span className={styles.itemSub}>
+                    {[resultados[0].artista, resultados[0].duracao].filter(Boolean).join(' · ')}
+                  </span>
+                </span>
+                <span className={styles.melhorBotoes}>
+                  <button
+                    className={styles.melhorTocar}
+                    onClick={() => tocar(resultados[0])}
+                    aria-label={`Tocar ${resultados[0].titulo}`}
+                  >
+                    <Icone nome="tocar" tamanho={20} />
+                  </button>
+                  <button
+                    className={styles.melhorFila}
+                    onClick={() => enfileirar(resultados[0])}
+                    aria-label={`${resultados[0].titulo} na fila`}
+                  >
+                    <Icone nome="fila" tamanho={20} />
+                  </button>
+                </span>
+              </div>
+            ) : null}
+
+            {resultados.length > 1 ? (
+              <div className={styles.secaoBusca}>
+                <span className={styles.secaoRotulo}>músicas</span>
+                <span className={styles.secaoDica}>toque para tocar · + para a fila</span>
+              </div>
+            ) : null}
+
+            {resultados.slice(1).map((item) => (
+              <div
                 key={item.id}
                 className={styles.item}
+                role="button"
+                tabIndex={0}
                 onClick={() => cliqueResultado(item)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    cliqueResultado(item);
+                  }
+                }}
                 onTouchStart={(e) => inicioBuscaToque(e, item)}
                 onTouchMove={(e) => moveBuscaToque(e, item)}
                 onTouchEnd={fimBuscaToque}
@@ -950,11 +1146,20 @@ export default function Pagina() {
                 <span className={styles.coluna}>
                   <span className={styles.itemTitulo}>{item.titulo}</span>
                   <span className={styles.itemSub}>
-                    {[item.artista, item.album].filter(Boolean).join(' · ')}
+                    {[item.artista, item.duracao].filter(Boolean).join(' · ')}
                   </span>
                 </span>
-                <span className={styles.duracao}>{item.duracao}</span>
-              </button>
+                <button
+                  className={styles.botaoMais}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    enfileirar(item);
+                  }}
+                  aria-label={`${item.titulo} na fila`}
+                >
+                  <Icone nome="mais" tamanho={20} />
+                </button>
+              </div>
             ))}
           </div>
 
@@ -1022,6 +1227,14 @@ export default function Pagina() {
       />
 
       <aside className={`${styles.gaveta} ${vista === 'fila' ? styles.gavetaAberta : ''}`}>
+        <div
+          className={styles.puxador}
+          onTouchStart={inicioListaToque}
+          onTouchEnd={fimListaToque}
+          aria-hidden
+        >
+          <span />
+        </div>
         <header
           className={styles.gavetaTopo}
           onTouchStart={inicioListaToque}
@@ -1030,17 +1243,56 @@ export default function Pagina() {
           <div className={styles.gavetaLinha}>
             <span className={styles.gavetaTitulo}>
               A seguir
-              {fila.itens.length ? <span className={styles.contador}>{fila.itens.length}</span> : null}
+              {proximos ? <span className={styles.contador}>{proximos}</span> : null}
             </span>
-            <button
-              className={styles.somBotao}
-              onClick={() => setVista('normal')}
-              aria-label="Fechar fila"
-            >
-              <Icone nome="fechar" tamanho={18} />
-            </button>
+            <span className={styles.gavetaAcoes}>
+              {proximos ? (
+                <button className={styles.limparFila} onClick={limparFila}>
+                  limpar
+                </button>
+              ) : null}
+              <button
+                className={styles.gavetaFechar}
+                onClick={() => setVista('normal')}
+                aria-label="Fechar fila"
+              >
+                <Icone nome="fechar" tamanho={18} />
+              </button>
+            </span>
           </div>
         </header>
+
+        {naFila ? (
+          <div className={styles.cardTocando}>
+            <div className={styles.cardTocandoLinha}>
+              {naFila.capa ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={naFila.capa} alt="" loading="lazy" />
+              ) : null}
+              <span className={styles.coluna}>
+                <span className={styles.cardRotulo}>tocando agora</span>
+                <span className={styles.itemTitulo}>{naFila.titulo}</span>
+                <span className={styles.itemSub}>{naFila.artista}</span>
+              </span>
+              <span className={styles.barrasMini} aria-hidden>
+                <i style={{ animationPlayState: faixa?.tocando ? 'running' : 'paused' }} />
+                <i style={{ animationPlayState: faixa?.tocando ? 'running' : 'paused' }} />
+                <i style={{ animationPlayState: faixa?.tocando ? 'running' : 'paused' }} />
+              </span>
+            </div>
+            {temProgresso ? (
+              <div className={styles.cardProgresso}>
+                <div style={{ width: pct(faixa.posicao, faixa.duracao) }} />
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {proximos ? (
+          <p className={styles.instrucao}>
+            arraste a alça para reordenar · deslize para a esquerda para remover
+          </p>
+        ) : null}
 
         <div
           className={styles.gavetaLista}
@@ -1052,8 +1304,11 @@ export default function Pagina() {
           }}
         >
           {fila.erro ? <p className={styles.nota}>{fila.erro}</p> : null}
-          {!fila.erro && !fila.itens.length ? <p className={styles.nota}>Fila vazia.</p> : null}
-          {fila.itens.map((item, i) => {
+          {!fila.erro && !proximos ? <p className={styles.nota}>Fila vazia.</p> : null}
+          {/* O tocando agora vive no card fixo; a lista e so o que vem depois.
+              O indice absoluto continua valendo para arrasto e API. */}
+          {(fila.atual >= 0 ? fila.itens.slice(fila.atual + 1) : fila.itens).map((item, rel) => {
+            const i = (fila.atual >= 0 ? fila.atual + 1 : 0) + rel;
             const arrastandoEste = arrasto?.indice === item.indice;
             let deslocamento = 0;
             if (arrasto && !arrastandoEste) {
@@ -1093,23 +1348,15 @@ export default function Pagina() {
                   onTouchStart={(e) => inicioItemToque(e, item)}
                   onTouchMove={(e) => moveItemToque(e, item)}
                 >
-                  <button
-                    className={`${styles.item} ${i === fila.atual ? styles.itemAtual : ''}`}
-                    onClick={() => pular(item)}
-                  >
+                  <button className={styles.item} onClick={() => pular(item)}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={item.capa} alt="" loading="lazy" />
                     <span className={styles.coluna}>
                       <span className={styles.itemTitulo}>{item.titulo}</span>
-                      <span className={styles.itemSub}>{item.artista}</span>
-                    </span>
-                    {i === fila.atual ? (
-                      <span className={styles.tocandoAgora}>
-                        <Icone nome="onda" tamanho={16} />
+                      <span className={styles.itemSub}>
+                        {[item.artista, item.duracao].filter(Boolean).join(' · ')}
                       </span>
-                    ) : (
-                      <span className={styles.duracao}>{item.duracao}</span>
-                    )}
+                    </span>
                   </button>
 
                   <span

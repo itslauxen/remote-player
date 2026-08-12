@@ -177,12 +177,13 @@
   color: #000;
 }
 
+/* 10a: a capa vem logo abaixo do cabecalho e a folga sobra embaixo. */
 .conteudo {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+  justify-content: flex-start;
   padding-bottom: 4px;
   touch-action: pan-x;
 }
@@ -195,11 +196,10 @@
 }
 
 .capa {
-  width: auto;
+  width: min(100%, 50dvh);
   max-width: 100%;
-  max-height: 46vh;
   aspect-ratio: 1;
-  border-radius: 24px;
+  border-radius: 26px;
   object-fit: cover;
   background: #ffffff0f;
   box-shadow: 0 30px 60px #00000099, 0 0 0 1px #ffffff1a inset;
@@ -208,7 +208,7 @@
 
 .capaVazia {
   composes: capa;
-  width: 46vh;
+  width: min(100%, 50dvh);
   display: grid;
   place-items: center;
   color: #ffffff26;
@@ -296,20 +296,21 @@
 .vidro {
   position: relative;
   flex: 0 0 auto;
-  padding: 24px 6px 0;
+  padding: 26px 6px 0;
   transition: opacity 0.3s ease, transform 0.35s ease;
 }
 
+/* 10a: titulo e artista encostam a esquerda, com o player logo abaixo. */
 .identidade {
   min-width: 0;
-  margin-bottom: 20px;
-  text-align: center;
+  margin-bottom: 12px;
+  text-align: left;
 }
 
 .faixa {
-  font-size: 22px;
+  font-size: 23px;
   font-weight: 600;
-  line-height: 1.25;
+  line-height: 1.22;
   letter-spacing: -0.02em;
   color: var(--tinta);
   text-shadow: 0 2px 12px #000000a6;
@@ -327,7 +328,7 @@
 .artista {
   font-size: 14px;
   color: var(--tinta-media);
-  margin-top: 7px;
+  margin-top: 8px;
   text-shadow: 0 1px 8px #000000a6;
   white-space: nowrap;
   overflow: hidden;
@@ -335,7 +336,7 @@
 }
 
 .progresso {
-  margin-bottom: 26px;
+  margin-bottom: 6px;
 }
 
 .tempos {
@@ -344,7 +345,7 @@
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   color: var(--tinta-fraca);
-  margin-top: 4px;
+  margin-top: 0;
 }
 
 .faixaDeslize {
@@ -388,20 +389,62 @@
   box-shadow: 0 2px 10px #000000b3;
 }
 
+/* 8a: a linha tem 4px, mas quem recebe o dedo e a faixa inteira de 44px.
+   Sem alvo (7b): a ponta acesa do gradiente ja diz onde esta. */
+.progresso .faixaDeslize {
+  height: 44px;
+}
+
+.progresso .faixaDeslize::-webkit-slider-runnable-track {
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    #0891b2,
+    var(--acento) var(--pct, 0%),
+    #ffffff1f var(--pct, 0%)
+  );
+}
+
+.progresso .faixaDeslize::-moz-range-track {
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    #0891b2,
+    var(--acento) var(--pct, 0%),
+    #ffffff1f var(--pct, 0%)
+  );
+}
+
+.progresso .faixaDeslize::-webkit-slider-thumb {
+  width: 0;
+  height: 0;
+  margin-top: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.progresso .faixaDeslize::-moz-range-thumb {
+  width: 0;
+  height: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* 10a: controles espalhados de ponta a ponta, com o play maior no centro. */
 .controles {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 18px;
-  margin-bottom: 10px;
+  justify-content: space-between;
+  gap: 0;
+  margin: 10px 0;
 }
 
 .passo {
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  width: 54px;
-  height: 54px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   color: var(--tinta);
   filter: drop-shadow(0 2px 8px #000000a6);
@@ -418,12 +461,12 @@
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  width: 68px;
-  height: 68px;
+  width: 76px;
+  height: 76px;
   border-radius: 50%;
   color: #04222a;
   background: linear-gradient(160deg, var(--acento), var(--acento-forte));
-  box-shadow: 0 10px 28px #22d3ee4d, inset 0 1px 0 #ffffff5c;
+  box-shadow: 0 12px 32px #22d3ee59, inset 0 1px 0 #ffffff5c;
   transition: transform 0.1s ease, box-shadow 0.15s ease;
 }
 
@@ -592,8 +635,8 @@
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   color: var(--tinta-media);
   filter: drop-shadow(0 2px 8px #000000a6);
@@ -621,18 +664,110 @@
   transition: opacity 0.3s ease;
 }
 
+/* Rotulo da coluna de texto e divisor dos controles: coisas do modo deitado. */
+.rotuloTocando {
+  display: none;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--acento);
+  margin-bottom: 12px;
+}
+
+.divisor {
+  display: none;
+  flex: 0 0 auto;
+  width: 1px;
+  height: 32px;
+  background: #ffffff1f;
+}
+
+/* Trilho de volume da borda direita: substitui o menu flutuante no deitado. */
+.trilhoSom {
+  display: none;
+  position: absolute;
+  right: 20px;
+  top: 64px;
+  bottom: 56px;
+  width: 26px;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  z-index: 11;
+  touch-action: none;
+  cursor: ns-resize;
+}
+
+.trilhoBarra {
+  position: relative;
+  flex: 1;
+  width: 6px;
+  border-radius: 999px;
+  background: #ffffff24;
+  overflow: hidden;
+}
+
+.trilhoNivel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--acento);
+  box-shadow: 0 0 12px #22d3ee80;
+}
+
+.trilhoSom .somBotao {
+  width: 26px;
+  height: 26px;
+  color: var(--acento);
+}
+
 /* Em pe nao ha espaco: a fila ja esta a um gesto de distancia. */
 .aSeguir {
   display: none;
 }
 
+.aSeguirTopo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.verFila {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--acento);
+  padding: 2px 4px;
+}
+
+.aSeguirCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 8px;
+  border-radius: 12px;
+  background: #ffffff0f;
+}
+
+.aSeguirCard img {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #ffffff0f;
+}
+
 .aSeguirRotulo {
   flex: 0 0 auto;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--acento);
+  color: var(--tinta-fraca);
 }
 
 .aSeguirFaixa {
@@ -640,18 +775,17 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--tinta-media);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tinta);
 }
 
 .aSeguirArtista {
-  flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--tinta-fraca);
 }
 
@@ -701,38 +835,99 @@
   pointer-events: none;
 }
 
-.modoFoco .vidro,
+/* Dicas de gesto do 10a/10b. */
+.dicaFoco {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--tinta-fraca);
+  padding: 6px 0 10px;
+}
+
+.dicaVoltar {
+  position: fixed;
+  top: calc(18px + env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #0a0c1299;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  font-size: 11px;
+  color: #ffffffb3;
+  pointer-events: none;
+  animation: surgir 0.3s ease;
+}
+
+.setaCima {
+  display: grid;
+  place-items: center;
+  transform: rotate(180deg);
+}
+
+/* 10b: a capa sangra nas tres bordas e o player continua legivel no degrade. */
 .modoFoco .rodapeTocando {
   opacity: 0;
   pointer-events: none;
 }
 
-.modoFoco .vidro {
-  transform: translateY(24px);
-}
-
 .modoFoco .palco {
   position: fixed;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 3dvh 3vw;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: block;
   z-index: 5;
+}
+
+.modoFoco .palco::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #07080c00 34%, #07080cd9 58%, #07080c 82%);
+  pointer-events: none;
 }
 
 .modoFoco .capa,
 .modoFoco .capaVazia {
-  width: auto;
-  height: auto;
-  max-height: 94dvh;
-  max-width: 94vw;
-  border-radius: 20px;
-  box-shadow: 0 40px 90px #000000b3;
+  width: 100vw;
+  height: 64dvh;
+  max-width: none;
+  max-height: none;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .modoFoco .capaVazia {
-  width: min(94dvh, 94vw);
-  height: min(94dvh, 94vw);
+  place-items: center;
+}
+
+.modoFoco .vidro {
+  position: fixed;
+  left: 24px;
+  right: 24px;
+  bottom: 40px;
+  z-index: 6;
+  padding: 0;
+}
+
+.modoFoco .identidade .faixa {
+  font-size: 26px;
+}
+
+/* No sangrado o que sobrou do normal nao aparece. */
+.modoFoco .aSeguir,
+.modoFoco .ondasTopo,
+.modoFoco .rotuloTocando {
+  display: none;
 }
 
 .modoFila .vidro {
@@ -740,12 +935,83 @@
   opacity: 0.5;
 }
 
+.campoLinha {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  margin-top: 18px;
+}
+
 .campo {
   position: relative;
   display: flex;
   align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.campoLimpar {
+  position: absolute;
+  z-index: 1;
+  right: 12px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #ffffff1f;
+  color: var(--tinta-media);
+}
+
+.botaoFilaBusca {
+  display: grid;
+  place-items: center;
   flex: 0 0 auto;
-  margin-top: 18px;
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  background: #ffffff0f;
+  border: 1px solid #ffffff1f;
+  color: var(--tinta-media);
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.botaoFilaBusca:active {
+  color: var(--tinta);
+  background: #ffffff1a;
+}
+
+.recentes {
+  display: flex;
+  gap: 8px;
+  flex: 0 0 auto;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+
+.recentes::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  flex: 0 0 auto;
+  max-width: 180px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding: 7px 13px;
+  border-radius: 999px;
+  background: #ffffff14;
+  border: 1px solid #ffffff1f;
+  font-size: 12px;
+  color: var(--tinta-media);
+}
+
+.chip:active {
+  color: var(--tinta);
+  background: #ffffff24;
 }
 
 /* O backdrop-filter do input cria contexto de empilhamento e pintava por cima
@@ -765,8 +1031,8 @@
   background: #12141db8;
   color: var(--tinta);
   border: 1px solid #ffffff1f;
-  border-radius: 14px;
-  padding: 15px 16px 15px 46px;
+  border-radius: 16px;
+  padding: 15px 44px 15px 46px;
   font-size: 16px;
   font-weight: 500;
   backdrop-filter: blur(20px);
@@ -795,6 +1061,130 @@
   padding-bottom: 8px;
 }
 
+/* O primeiro resultado vira o alvo grande, com tocar e fila a um toque. */
+.melhor {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 0 0 auto;
+  padding: 14px;
+  border-radius: 20px;
+  background: #22d3ee14;
+  border: 1px solid #22d3ee40;
+}
+
+.melhor img {
+  width: 74px;
+  height: 74px;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  object-fit: cover;
+  background: #ffffff0f;
+}
+
+.melhorRotulo {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--acento);
+}
+
+.melhorTitulo {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--tinta);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.melhorBotoes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.melhorTocar {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  color: #04222a;
+  background: linear-gradient(160deg, var(--acento), var(--acento-forte));
+  box-shadow: 0 6px 18px #22d3ee4d;
+  transition: transform 0.1s ease;
+}
+
+.melhorTocar:active {
+  transform: scale(0.95);
+}
+
+.melhorFila {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  color: var(--acento);
+  background: #22d3ee1f;
+  border: 1px solid #22d3ee40;
+  transition: transform 0.1s ease;
+}
+
+.melhorFila:active {
+  transform: scale(0.95);
+}
+
+.secaoBusca {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex: 0 0 auto;
+  padding: 12px 4px 4px;
+}
+
+.secaoRotulo {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--tinta-fraca);
+}
+
+.secaoDica {
+  font-size: 11px;
+  color: var(--tinta-fraca);
+}
+
+/* O gesto de arrastar continua valendo; o botao so deixa ele visivel. */
+.botaoMais {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: #ffffff0f;
+  color: var(--tinta-media);
+  transition: color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+}
+
+.botaoMais:active {
+  color: var(--acento);
+  background: #22d3ee1f;
+  transform: scale(0.94);
+}
+
+.resultados .item img {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+}
+
 .item {
   display: flex;
   gap: 14px;
@@ -817,21 +1207,6 @@
   border-radius: 8px;
   background: #ffffff0f;
   object-fit: cover;
-}
-
-.itemAtual {
-  background: #22d3ee14;
-}
-
-.itemAtual .itemTitulo {
-  color: var(--acento);
-}
-
-.tocandoAgora {
-  color: var(--acento);
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
 }
 
 .coluna {
@@ -906,9 +1281,25 @@
   transform: translate(-50%, 0);
 }
 
+/* Puxador visivel: a gaveta anuncia que desce com o dedo. */
+.puxador {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  padding: 10px 0 2px;
+  touch-action: none;
+}
+
+.puxador span {
+  width: 44px;
+  height: 5px;
+  border-radius: 999px;
+  background: #ffffff40;
+}
+
 .gavetaTopo {
   flex: 0 0 auto;
-  padding: 16px 18px 12px;
+  padding: 8px 14px 12px 18px;
   touch-action: none;
 }
 
@@ -927,16 +1318,144 @@
   font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--tinta-media);
+  color: var(--tinta);
 }
 
 .contador {
   font-size: 11px;
+  font-weight: 600;
   letter-spacing: 0;
-  color: var(--tinta-fraca);
-  background: #ffffff14;
+  color: #0a0c12;
+  background: var(--acento);
   border-radius: 999px;
-  padding: 3px 8px;
+  padding: 4px 8px;
+}
+
+.gavetaAcoes {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.limparFila {
+  padding: 9px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--tinta-media);
+  background: #ffffff0f;
+  border: 1px solid #ffffff1f;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.limparFila:active {
+  color: var(--alerta);
+  background: #fb718529;
+}
+
+.gavetaFechar {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  color: var(--tinta-media);
+  background: #ffffff0f;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.gavetaFechar:active {
+  color: var(--tinta);
+  background: #ffffff1a;
+}
+
+/* Tocando agora fixo acima da lista, em vez de perdido no meio dela. */
+.cardTocando {
+  flex: 0 0 auto;
+  margin: 0 14px 14px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: #22d3ee14;
+  border: 1px solid #22d3ee40;
+}
+
+.cardTocandoLinha {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.cardTocando img {
+  width: 54px;
+  height: 54px;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  object-fit: cover;
+  background: #ffffff0f;
+}
+
+.cardRotulo {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--acento);
+}
+
+.barrasMini {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 26px;
+  flex: 0 0 auto;
+}
+
+.barrasMini i {
+  display: block;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--acento);
+  transform-origin: bottom;
+  animation: pulsar 0.8s cubic-bezier(0.4, 0, 0.5, 1) infinite alternate;
+}
+
+.barrasMini i:nth-child(1) {
+  height: 60%;
+  animation-duration: 0.7s;
+}
+
+.barrasMini i:nth-child(2) {
+  height: 100%;
+  animation-duration: 0.9s;
+  animation-delay: 0.15s;
+}
+
+.barrasMini i:nth-child(3) {
+  height: 45%;
+  animation-delay: 0.3s;
+}
+
+.cardProgresso {
+  margin-top: 12px;
+  height: 3px;
+  border-radius: 999px;
+  background: #ffffff24;
+  overflow: hidden;
+}
+
+.cardProgresso > div {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--acento);
+}
+
+/* Uma linha so, no lugar de gestos que a tela nao anunciava. */
+.instrucao {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0 18px 10px;
+  font-size: 11px;
+  color: var(--tinta-fraca);
 }
 
 .gavetaLista {
@@ -945,13 +1464,28 @@
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  padding: 0 12px calc(16px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 10px calc(16px + env(safe-area-inset-bottom));
 }
 
 .linhaFila {
   position: relative;
+  flex: 0 0 auto;
   overflow: hidden;
-  border-radius: 14px;
+  border-radius: 16px;
+  background: #ffffff0a;
+}
+
+.gavetaLista .item {
+  padding: 9px 4px 9px 8px;
+}
+
+.gavetaLista .item img {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
 }
 
 .linhaAbrindo {
@@ -983,7 +1517,7 @@
   top: 0;
   right: 0;
   bottom: 0;
-  width: 76px;
+  width: 44px;
   display: grid;
   place-items: center;
   color: #fff;
@@ -994,14 +1528,14 @@
   position: relative;
   display: flex;
   align-items: center;
-  background: #0d0f16;
+  background: #12141d;
   transform: translateX(0);
   transition: transform 0.24s cubic-bezier(0.32, 0.72, 0, 1);
   touch-action: pan-y;
 }
 
 .deslizado {
-  transform: translateX(-76px);
+  transform: translateX(-44px);
 }
 
 .deslizavel .item {
@@ -1114,6 +1648,46 @@
     display: flex;
   }
 
+  /* No desktop as dicas de gesto de toque nao fazem sentido. */
+  .dicaFoco,
+  .dicaVoltar {
+    display: none;
+  }
+
+  /* Tela larga: o foco volta a ser a capa inteira centrada, sem player. */
+  .modoFoco .vidro {
+    position: static;
+    padding: 0;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(24px);
+  }
+
+  .modoFoco .palco {
+    display: grid;
+    place-items: center;
+    padding: 3dvh 3vw;
+  }
+
+  .modoFoco .palco::after {
+    display: none;
+  }
+
+  .modoFoco .capa,
+  .modoFoco .capaVazia {
+    width: auto;
+    height: auto;
+    max-height: 94dvh;
+    max-width: 94vw;
+    border-radius: 20px;
+    box-shadow: 0 40px 90px #000000b3;
+  }
+
+  .modoFoco .capaVazia {
+    width: min(94dvh, 94vw);
+    height: min(94dvh, 94vw);
+  }
+
   .gaveta {
     left: auto;
     right: 0;
@@ -1132,17 +1706,13 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .pegador,
+  /* A alca de arrastar fica sempre a vista; so a lixeira espera o hover. */
   .removerDireto {
+    display: grid;
     opacity: 0;
     transition: opacity 0.15s ease;
   }
 
-  .removerDireto {
-    display: grid;
-  }
-
-  .linhaFila:hover .pegador,
   .linhaFila:hover .removerDireto {
     opacity: 1;
   }
@@ -1225,6 +1795,11 @@
     display: none;
   }
 
+  /* No modo completo o trilho da borda direita assume o volume. */
+  .volumeCaixaComTrilho {
+    display: none;
+  }
+
   .painel {
     position: relative;
   }
@@ -1242,77 +1817,182 @@
     align-items: stretch;
   }
 
+  /* A capa sangra na borda esquerda e toma a altura inteira da tela. */
   .capa,
   .capaVazia {
-    height: calc(100dvh - 40px);
-    width: calc(100dvh - 40px);
-    margin: 20px 12px;
-    /* Do lado esquerdo o notch avanca, entao recua mais - e acompanha a area
-       segura quando o aparelho pede mais que isso. */
-    margin-left: max(28px, env(safe-area-inset-left));
+    height: 100dvh;
+    width: 100dvh;
+    margin: 0;
     max-width: none;
     max-height: none;
-    border-radius: 22px;
-    box-shadow: 24px 0 60px #000000a6;
+    border-radius: 0 26px 26px 0;
+    box-shadow: 30px 0 70px #000000b3;
   }
 
   .capaVazia {
     place-items: center;
   }
 
+  /* Texto encostado a esquerda; a coluna vai da capa ate o trilho de volume. */
   .vidro {
     flex: 1;
     min-width: 0;
-    /* Deitado, trilha e botoes ficam na base. O recuo de baixo abre espaco para
-       o .rodapeTocando, que fica ancorado ali. */
     align-self: stretch;
     display: flex;
     flex-direction: column;
-    margin: 0 auto;
-    max-width: 420px;
-    padding: 56px 22px 26px;
+    margin: 0;
+    max-width: none;
+    padding: 56px 60px 14px 32px;
+    text-align: left;
   }
 
-  /* Titulo e artista tomam a sobra acima da trilha e se centram nela. Com o
-     equalizador ligado a sobra encolhe e eles descem sozinhos. */
+  /* Ordem do 2b: identidade, controles, o a seguir na sobra, trilha na base. */
   .identidade {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+    order: 1;
+    flex: 0 0 auto;
+    display: block;
+    text-align: left;
     margin-bottom: 0;
   }
 
-  /* Ocupa o vazio que sobrava abaixo dos botoes. So existe deitado. */
-  .aSeguir {
+  .rotuloTocando {
+    display: block;
+  }
+
+  .ondasTopo {
+    order: 2;
     display: flex;
-    align-items: baseline;
-    justify-content: center;
-    gap: 8px;
-    min-width: 0;
-    margin-top: 14px;
-    padding-top: 12px;
-    border-top: 1px solid var(--borda);
-  }
-
-  .identidade {
-    text-align: center;
-    margin-bottom: 16px;
-  }
-
-  .faixa {
-    font-size: 20px;
-    -webkit-line-clamp: 2;
+    height: 84px;
+    margin: 16px 0 0;
   }
 
   .controles {
-    justify-content: center;
-    gap: 22px;
-    margin-bottom: 16px;
+    order: 3;
+    justify-content: flex-start;
+    gap: 18px;
+    margin: 22px 0 0;
   }
 
-  .campo {
+  .aSeguir {
+    order: 4;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    margin-top: auto;
+    padding-top: 14px;
+  }
+
+  .progresso {
+    order: 5;
+    margin: 14px 0 0;
+  }
+
+  .faixa {
+    font-size: 24px;
+    -webkit-line-clamp: 2;
+  }
+
+  .artista {
+    font-size: 15px;
+    margin-top: 8px;
+  }
+
+  /* O botao da fila sai dos controles: o "ver fila" do a seguir assume. */
+  .controles .alternar:first-child {
+    display: none;
+  }
+
+  .controles .alternar {
+    width: 44px;
+    height: 44px;
+  }
+
+  .passo {
+    width: 48px;
+    height: 48px;
+    background: #ffffff0f;
+  }
+
+  .tocar {
+    width: 64px;
+    height: 64px;
+  }
+
+  .divisor {
+    display: block;
+  }
+
+  /* Trilha fininha de ponta a ponta da coluna, com o que falta a direita. */
+  .progresso .faixaDeslize::-webkit-slider-runnable-track {
+    height: 4px;
+  }
+
+  .progresso .faixaDeslize::-moz-range-track {
+    height: 4px;
+  }
+
+  .progresso .faixaDeslize::-webkit-slider-thumb {
+    width: 14px;
+    height: 14px;
+    margin-top: -5px;
+  }
+
+  .progresso .faixaDeslize::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+  }
+
+  .tempos {
+    font-size: 10px;
+    margin-top: 2px;
+  }
+
+  .trilhoSom {
+    display: flex;
+  }
+
+  .modoFoco .trilhoSom {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Deitado a capa ja e a tela: o foco volta a ser so ela, centrada. */
+  .dicaFoco {
+    display: none;
+  }
+
+  .modoFoco .vidro {
+    position: static;
+    padding: 56px 60px 14px 32px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .modoFoco .palco {
+    display: grid;
+    place-items: center;
+    padding: 0;
+  }
+
+  .modoFoco .palco::after {
+    display: none;
+  }
+
+  .modoFoco .capa,
+  .modoFoco .capaVazia {
+    width: 100dvh;
+    height: 100dvh;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .campoLinha {
     margin: 14px 20px 0;
+  }
+
+  .recentes {
+    padding: 0 20px;
   }
 
   .resultados {
@@ -1339,18 +2019,11 @@
     display: none;
   }
 
-  .ondasTopo {
-    display: flex;
-    height: 96px;
-    margin-bottom: 16px;
-  }
-
   .rodapeTocando {
     position: absolute;
-    bottom: 4px;
-    /* A capa agora recua 12px, entao a borda direita dela caiu junto. */
-    left: calc(100dvh + 12px);
-    right: 20px;
+    bottom: 56px;
+    left: calc(100dvh + 32px);
+    right: 60px;
     padding: 0;
   }
 
