@@ -164,15 +164,83 @@ local. Duas saídas:
 
 ## Acessar de fora de casa
 
-O servidor precisa continuar rodando no seu PC — hospedar em Vercel, Netlify ou
-similar não funciona, porque as rotas da API precisam falar com o player local.
+O servidor precisa continuar rodando no seu PC. **Hospedar em Vercel, Netlify ou
+qualquer nuvem não funciona**: as rotas da API falam com o player em `127.0.0.1`,
+que na nuvem é a máquina do provedor, não a sua. Lá só a busca funcionaria.
 
-Para acesso remoto, use um túnel que exponha o servidor da sua máquina:
+A solução é um túnel, que mantém o servidor na sua máquina e expõe um endereço
+público. O agente abre uma conexão de saída, então não é preciso abrir portas no
+roteador.
 
-- **Cloudflare Tunnel** — dá HTTPS válido no seu próprio domínio. Combine com
-  Cloudflare Access para exigir login, senão qualquer um com o link controla seu som.
-- **Tailscale** — `tailscale serve --bg 8765` cria uma rede privada entre seus
-  aparelhos, sem expor nada na internet.
+### Cloudflare Tunnel
+
+Requer um domínio com DNS na Cloudflare. Você ganha HTTPS válido, o que também
+libera instalar o PWA no Android.
+
+Baixe o `cloudflared` ([releases](https://github.com/cloudflare/cloudflared/releases)),
+ou no Windows:
+
+```powershell
+winget install --id Cloudflare.cloudflared -e
+```
+
+No macOS:
+
+```bash
+brew install cloudflared
+```
+
+Autorize e crie o túnel:
+
+```bash
+cloudflared tunnel login
+cloudflared tunnel create remoteplayer
+```
+
+Crie o `config.yml` em `~/.cloudflared/` (no Windows, `C:\Users\SEU_USUARIO\.cloudflared\`),
+trocando o ID pelo que o comando anterior imprimiu:
+
+```yaml
+tunnel: SEU_TUNNEL_ID
+credentials-file: /caminho/para/SEU_TUNNEL_ID.json
+
+ingress:
+  - hostname: seu-subdominio.seu-dominio.com
+    service: http://localhost:8765
+  - service: http_status:404
+```
+
+Aponte o DNS e suba o túnel:
+
+```bash
+cloudflared tunnel route dns remoteplayer seu-subdominio.seu-dominio.com
+cloudflared tunnel run remoteplayer
+```
+
+Use `--overwrite-dns` no comando de rota se o subdomínio já apontar para outro lugar.
+
+**Proteja o acesso.** Sem autenticação, qualquer pessoa que descobrir o endereço
+controla o som do seu PC. O Cloudflare Access resolve de graça: no painel Zero Trust,
+crie uma aplicação self-hosted para o subdomínio e uma política que só aceite o seu
+e-mail.
+
+### Tailscale
+
+Alternativa sem domínio próprio: `tailscale serve --bg 8765` cria uma rede privada
+entre seus aparelhos, sem expor nada na internet.
+
+## Subir junto com o Windows
+
+Os scripts `iniciar.cmd` (com janela) e `iniciar-silencioso.vbs` (sem janela) sobem
+o servidor e o túnel juntos. Ambos usam o nome de túnel `remoteplayer` — troque se
+tiver usado outro.
+
+Para iniciar no login, coloque um atalho do `iniciar-silencioso.vbs` na pasta de
+Inicialização:
+
+```powershell
+explorer shell:startup
+```
 
 ## Variáveis de ambiente
 
