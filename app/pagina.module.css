@@ -513,8 +513,9 @@
 /* O morfo entre 10a e 10b usa a mesma curva da gaveta. */
 ::view-transition-group(capa),
 ::view-transition-group(player),
-::view-transition-group(topo) {
-  animation-duration: 0.38s;
+::view-transition-group(topo),
+::view-transition-group(veu) {
+  animation-duration: 0.34s;
   animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
@@ -925,12 +926,21 @@
   z-index: 5;
 }
 
-.modoFoco .palco::after {
-  content: '';
+/* O veu e um elemento de verdade para entrar no morfo junto com a capa - como
+   pseudo-elemento ele so aparecia quando a transicao acabava. Escuro completo
+   antes do fim da capa (64dvh), para nao sobrar linha na base da imagem. */
+.veuFoco {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, #07080c00 34%, #07080cd9 58%, #07080c 82%);
+  background: linear-gradient(180deg, #07080c00 26%, #07080cb3 46%, #07080c 62%);
   pointer-events: none;
+  view-transition-name: veu;
+}
+
+/* A propria imagem se dissolve no fundo, em vez de acabar numa aresta. */
+.modoFoco .capa {
+  -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent 97%);
+  mask-image: linear-gradient(180deg, #000 55%, transparent 97%);
 }
 
 .modoFoco .capa,
@@ -1687,8 +1697,13 @@
     padding: 3dvh 3vw;
   }
 
-  .modoFoco .palco::after {
+  .veuFoco {
     display: none;
+  }
+
+  .modoFoco .capa {
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 
   .modoFoco .capa,
@@ -1992,8 +2007,13 @@
     padding: 0;
   }
 
-  .modoFoco .palco::after {
+  .veuFoco {
     display: none;
+  }
+
+  .modoFoco .capa {
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 
   .modoFoco .capa,

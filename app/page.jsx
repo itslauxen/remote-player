@@ -858,6 +858,8 @@ export default function Pagina() {
                 </div>
               )}
               {ondas ? <Ondas classe={styles.ondasPalco} tocando={faixa?.tocando} /> : null}
+              {/* O veu que funde a capa no fundo participa do morfo. */}
+              {vista === 'foco' ? <div className={styles.veuFoco} aria-hidden /> : null}
             </div>
 
             {/* Na capa sangrada o cabecalho some; a pill diz como voltar. */}
