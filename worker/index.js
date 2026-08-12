@@ -57,6 +57,33 @@ function offline(alvo, outros, ehApi) {
   );
 }
 
+function semToken(alvo, ehApi) {
+  const recado = `o Access de ${alvo} recusou o service token do Worker`;
+  if (ehApi) {
+    return Response.json(
+      { ok: false, erro: recado, offline: true },
+      { status: 502, headers: { 'Cache-Control': 'no-store' } },
+    );
+  }
+  return new Response(
+    `<!doctype html><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${alvo}: token recusado</title>
+<style>
+  body{margin:0;min-height:100dvh;display:grid;place-items:center;background:#111;
+       color:#eee;font:16px/1.6 system-ui,sans-serif;text-align:center;padding:24px}
+  code{background:#222;padding:2px 6px;border-radius:4px}
+</style>
+<div>
+  <h1>${alvo} recusou o token</h1>
+  <p>A policy do Access em <code>${alvo}</code> precisa ser do tipo
+  <b>Service Auth</b>, incluindo o service token do Worker.</p>
+  <p>Uma policy de e-mail ali manda o visitante logar no hostname de tras.</p>
+</div>`,
+    { status: 502, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } },
+  );
+}
+
 // Bate em cada maquina para a tela de configuracoes saber quem esta de pe.
 async function listar(mapa, nomes, alvo, padrao, env) {
   const dispositivos = await Promise.all(
@@ -125,6 +152,13 @@ export default {
     // 502 e a familia 52x sao o tunel dizendo que a origem sumiu.
     if (resposta.status === 502 || (resposta.status >= 520 && resposta.status <= 530)) {
       return offline(alvo, nomes.filter((n) => n !== alvo), ehApi);
+    }
+    // Se a maquina de tras esta atras de Access e o service token nao passou, ela
+    // responde um redirect para o login dela. Repassar isso jogaria o visitante
+    // no hostname interno para logar de novo, no app errado. Melhor falhar claro.
+    const paraLogin = resposta.headers.get('Location') || '';
+    if (resposta.status >= 300 && resposta.status < 400 && paraLogin.includes('cloudflareaccess.com')) {
+      return semToken(alvo, ehApi);
     }
     return resposta;
   },

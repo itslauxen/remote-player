@@ -1,4 +1,4 @@
-const CACHE = 'controle-ytm-v3';
+const CACHE = 'controle-ytm-v4';
 const CASCA = ['/', '/manifest.webmanifest', '/icone-192.png', '/icone-512.png'];
 
 self.addEventListener('install', (e) => {
@@ -32,7 +32,10 @@ self.addEventListener('fetch', (e) => {
   e.respondWith(
     fetch(e.request)
       .then((resposta) => {
-        if (resposta && resposta.ok) {
+        // resposta.redirected significa que o fetch seguiu um desvio: atras do
+        // Cloudflare Access isso e a tela de login, que chega com status 200 e
+        // seria guardada no lugar do CSS. Serve, mas nao cacheia.
+        if (resposta && resposta.ok && !resposta.redirected) {
           const copia = resposta.clone();
           caches.open(CACHE).then((c) => c.put(e.request, copia));
         }
