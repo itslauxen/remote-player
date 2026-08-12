@@ -167,6 +167,9 @@ export default function Pagina() {
   const rolagem = useRef({ total: 0, quando: 0, disparo: 0 });
   const rolagemX = useRef({ total: 0, quando: 0, disparo: 0 });
   const arrastandoFila = useRef(false);
+  const somArrasto = useRef(null);
+  const ultimoVolume = useRef(0);
+  const envioVolume = useRef(0);
 
   const alvoDe = useCallback(
     (a) =>
@@ -477,6 +480,37 @@ export default function Pagina() {
     setTimeout(carregarFila, 600);
   }
 
+  function enviarVolume(valor) {
+    ultimoVolume.current = valor;
+    volumeFixado.current = true;
+    setVolume(valor);
+    const agora = Date.now();
+    if (agora - envioVolume.current < 140) return;
+    envioVolume.current = agora;
+    chamar('/api/volume', { valor });
+  }
+
+  function inicioSom(e) {
+    if (e.target.closest('button')) return;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    somArrasto.current = { y: e.clientY, base: volume ?? 0 };
+  }
+
+  function moveSom(e) {
+    if (!somArrasto.current) return;
+    e.preventDefault();
+    const dy = somArrasto.current.y - e.clientY;
+    const novo = Math.round(Math.min(100, Math.max(0, somArrasto.current.base + (dy / 170) * 100)));
+    if (novo !== ultimoVolume.current) enviarVolume(novo);
+  }
+
+  function fimSom() {
+    if (!somArrasto.current) return;
+    somArrasto.current = null;
+    envioVolume.current = 0;
+    chamar('/api/volume', { valor: ultimoVolume.current });
+  }
+
   async function instalar() {
     promptPwa.prompt();
     await promptPwa.userChoice;
@@ -517,7 +551,13 @@ export default function Pagina() {
               </button>
 
               {somAberto ? (
-                <div className={styles.volumeMenu}>
+                <div
+                  className={styles.volumeMenu}
+                  onPointerDown={completo ? inicioSom : undefined}
+                  onPointerMove={completo ? moveSom : undefined}
+                  onPointerUp={completo ? fimSom : undefined}
+                  onPointerCancel={completo ? fimSom : undefined}
+                >
                   <span className={styles.volumeValor}>{completo ? (volume ?? '—') : '·'}</span>
 
                   {completo ? (
@@ -530,16 +570,8 @@ export default function Pagina() {
                         max={100}
                         value={volume ?? 0}
                         aria-label="Volume"
-                        onChange={(e) => {
-                          volumeFixado.current = true;
-                          setVolume(Number(e.target.value));
-                        }}
-                        onPointerUp={(e) =>
-                          chamar('/api/volume', { valor: Number(e.currentTarget.value) })
-                        }
-                        onKeyUp={(e) =>
-                          chamar('/api/volume', { valor: Number(e.currentTarget.value) })
-                        }
+                        tabIndex={-1}
+                        readOnly
                       />
                     </div>
                   ) : (

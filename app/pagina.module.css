@@ -408,6 +408,8 @@
   -webkit-backdrop-filter: blur(28px) saturate(180%);
   box-shadow: 0 18px 44px #000000a6;
   animation: surgir 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+  touch-action: none;
+  cursor: ns-resize;
 }
 
 @keyframes surgir {
@@ -426,17 +428,37 @@
 
 .trilhaVertical {
   position: relative;
-  width: 36px;
-  height: 150px;
+  width: 44px;
+  height: 168px;
 }
 
 .trilhaVertical .faixaDeslize {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 150px;
+  width: 168px;
   margin: 0;
+  pointer-events: none;
   transform: translate(-50%, -50%) rotate(-90deg);
+}
+
+.trilhaVertical .faixaDeslize::-webkit-slider-runnable-track {
+  height: 14px;
+}
+
+.trilhaVertical .faixaDeslize::-moz-range-track {
+  height: 14px;
+}
+
+.trilhaVertical .faixaDeslize::-webkit-slider-thumb {
+  width: 26px;
+  height: 26px;
+  margin-top: -6px;
+}
+
+.trilhaVertical .faixaDeslize::-moz-range-thumb {
+  width: 26px;
+  height: 26px;
 }
 
 .passosVertical {
