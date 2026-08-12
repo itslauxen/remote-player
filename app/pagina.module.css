@@ -122,12 +122,6 @@
   color: #ffffff8c;
 }
 
-/* A marca fica no ciano; so o texto ao lado e apagado. */
-.marca svg {
-  flex: 0 0 auto;
-  color: var(--acento);
-}
-
 .topoDireita {
   display: flex;
   align-items: center;
@@ -393,6 +387,8 @@
    Sem alvo (7b): a ponta acesa do gradiente ja diz onde esta. */
 .progresso .faixaDeslize {
   height: 44px;
+  /* O gesto na trilha e todo dela; sem isto o navegador disputa o arrasto. */
+  touch-action: none;
 }
 
 .progresso .faixaDeslize::-webkit-slider-runnable-track {
@@ -415,17 +411,22 @@
   );
 }
 
+/* O alvo existe para o dedo, nao para o olho: 44px agarraveis, transparentes.
+   No iOS o arrasto do range depende do thumb - com 0x0 nada se arrasta. */
 .progresso .faixaDeslize::-webkit-slider-thumb {
-  width: 0;
-  height: 0;
-  margin-top: 0;
+  width: 44px;
+  height: 44px;
+  margin-top: -20px;
+  border-radius: 50%;
   background: transparent;
   box-shadow: none;
 }
 
 .progresso .faixaDeslize::-moz-range-thumb {
-  width: 0;
-  height: 0;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
   background: transparent;
   box-shadow: none;
 }
@@ -872,7 +873,31 @@
   transform: rotate(180deg);
 }
 
-/* 10b: a capa sangra nas tres bordas e o player continua legivel no degrade. */
+/* 10b: a capa sangra nas tres bordas e o player continua legivel no degrade.
+   A entrada anima do lugar onde as coisas estavam no 10a: a capa cresce das
+   margens para as bordas e o player desce ate a base. */
+@keyframes crescerCapa {
+  from {
+    width: calc(100% - 40px);
+    height: calc(100vw - 40px);
+    margin: calc(96px + env(safe-area-inset-top)) 20px 0;
+    border-radius: 26px;
+  }
+}
+
+@keyframes descerPlayer {
+  from {
+    transform: translateY(-64px);
+    opacity: 0;
+  }
+}
+
+@keyframes surgirVeu {
+  from {
+    opacity: 0;
+  }
+}
+
 .modoFoco .rodapeTocando {
   opacity: 0;
   pointer-events: none;
@@ -904,6 +929,11 @@
   max-height: none;
   border-radius: 0;
   box-shadow: none;
+  animation: crescerCapa 0.38s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.modoFoco .palco::after {
+  animation: surgirVeu 0.38s ease;
 }
 
 .modoFoco .capaVazia {
@@ -917,6 +947,7 @@
   bottom: 40px;
   z-index: 6;
   padding: 0;
+  animation: descerPlayer 0.42s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .modoFoco .identidade .faixa {
@@ -1281,25 +1312,9 @@
   transform: translate(-50%, 0);
 }
 
-/* Puxador visivel: a gaveta anuncia que desce com o dedo. */
-.puxador {
-  flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-  padding: 10px 0 2px;
-  touch-action: none;
-}
-
-.puxador span {
-  width: 44px;
-  height: 5px;
-  border-radius: 999px;
-  background: #ffffff40;
-}
-
 .gavetaTopo {
   flex: 0 0 auto;
-  padding: 8px 14px 12px 18px;
+  padding: 16px 14px 12px 18px;
   touch-action: none;
 }
 
@@ -1467,7 +1482,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 0 10px calc(16px + env(safe-area-inset-bottom));
+  padding: 0 10px 16px;
 }
 
 .linhaFila {
@@ -1681,6 +1696,11 @@
     max-width: 94vw;
     border-radius: 20px;
     box-shadow: 0 40px 90px #000000b3;
+    animation: none;
+  }
+
+  .modoFoco .vidro {
+    animation: none;
   }
 
   .modoFoco .capaVazia {
@@ -1985,6 +2005,11 @@
     height: 100dvh;
     border-radius: 0;
     box-shadow: none;
+    animation: none;
+  }
+
+  .modoFoco .vidro {
+    animation: none;
   }
 
   .campoLinha {
