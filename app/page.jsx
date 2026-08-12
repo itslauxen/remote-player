@@ -67,11 +67,15 @@ function Icone({ nome, tamanho = 24 }) {
         <circle cx="12" cy="12" r="2.5" />
       </>
     ),
-    onda: (
+    onda: <path d="M3 12h2l2.5-7 4 18 3.5-13 2 6h4" />,
+    fila: (
       <>
-        <path d="M3 12h2l2.5-7 4 18 3.5-13 2 6h4" />
+        <path d="M3 6h13M3 12h13M3 18h9" />
+        <path d="m17 15 4 3-4 3z" fill="currentColor" />
       </>
     ),
+    fechar: <path d="M6 6l12 12M18 6L6 18" />,
+    seta: <path d="m6 9 6 6 6-6" />,
   };
   return <svg {...comum}>{desenhos[nome]}</svg>;
 }
@@ -92,6 +96,7 @@ async function chamar(url, corpo) {
 
 export default function Pagina() {
   const [aba, setAba] = useState('tocando');
+  const [vista, setVista] = useState('normal');
   const [faixa, setFaixa] = useState(null);
   const [estado, setEstado] = useState(null);
   const [termo, setTermo] = useState('');
@@ -99,8 +104,10 @@ export default function Pagina() {
   const [notaBusca, setNotaBusca] = useState('');
   const [promptPwa, setPromptPwa] = useState(null);
   const [volume, setVolume] = useState(null);
+  const [fila, setFila] = useState({ itens: [], atual: -1, erro: '' });
   const arrastando = useRef(false);
   const volumeFixado = useRef(false);
+  const toque = useRef(null);
   const timer = useRef(null);
   const campo = useRef(null);
 
@@ -119,6 +126,11 @@ export default function Pagina() {
     if (!volumeFixado.current && d.volume != null) setVolume(d.volume);
   }, []);
 
+  const carregarFila = useCallback(async () => {
+    const d = await chamar('/api/fila');
+    if (!d.offline) setFila(d);
+  }, []);
+
   useEffect(() => {
     atualizar();
     const id = setInterval(() => {
@@ -133,6 +145,15 @@ export default function Pagina() {
   }, [atualizar]);
 
   useEffect(() => {
+    if (vista !== 'fila') return;
+    carregarFila();
+    const id = setInterval(() => {
+      if (!document.hidden) carregarFila();
+    }, 5000);
+    return () => clearInterval(id);
+  }, [vista, carregarFila]);
+
+  useEffect(() => {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(() => {});
     }
@@ -144,6 +165,23 @@ export default function Pagina() {
     window.addEventListener('appinstalled', () => setPromptPwa(null));
     return () => window.removeEventListener('beforeinstallprompt', aoInstalar);
   }, []);
+
+  function inicioToque(e) {
+    const t = e.touches[0];
+    toque.current = { x: t.clientX, y: t.clientY };
+  }
+
+  function fimToque(e) {
+    if (!toque.current) return;
+    const t = e.changedTouches[0];
+    const dy = t.clientY - toque.current.y;
+    const dx = t.clientX - toque.current.x;
+    toque.current = null;
+    if (Math.abs(dy) < 55 || Math.abs(dx) > Math.abs(dy)) return;
+    navigator.vibrate?.(10);
+    if (dy < 0) setVista((v) => (v === 'foco' ? 'normal' : 'fila'));
+    else setVista((v) => (v === 'fila' ? 'normal' : 'foco'));
+  }
 
   async function comando(acao) {
     navigator.vibrate?.(12);
@@ -176,6 +214,17 @@ export default function Pagina() {
     }
   }
 
+  async function pular(item) {
+    navigator.vibrate?.(12);
+    const d = await chamar('/api/fila', { indice: item.indice });
+    if (d.ok) {
+      setTimeout(atualizar, 800);
+      setTimeout(carregarFila, 1000);
+    } else {
+      avisar(d.erro || 'não consegui pular', false);
+    }
+  }
+
   async function instalar() {
     promptPwa.prompt();
     await promptPwa.userChoice;
@@ -183,14 +232,22 @@ export default function Pagina() {
   }
 
   const temProgresso = completo && faixa.duracao > 0;
+  const classeTocando = [
+    styles.painel,
+    vista === 'foco' ? styles.modoFoco : '',
+    vista === 'fila' ? styles.modoFila : '',
+  ].join(' ');
 
   return (
     <>
-      <div className={styles.fundo} style={{ '--capa': faixa?.capa ? `url(${faixa.capa})` : 'none' }} />
+      <div
+        className={styles.fundo}
+        style={{ '--capa': faixa?.capa ? `url(${faixa.capa})` : 'none' }}
+      />
       <div className={styles.veu} />
 
       <main className={styles.tela}>
-        <section className={aba === 'tocando' ? styles.painel : styles.oculto}>
+        <section className={aba === 'tocando' ? classeTocando : styles.oculto}>
           <header className={styles.topo}>
             <span className={styles.marca}>Controle</span>
             <span className={styles.selo}>
@@ -199,112 +256,123 @@ export default function Pagina() {
             </span>
           </header>
 
-          <div className={styles.palco}>
-            {faixa?.capa ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img className={styles.capa} src={faixa.capa} alt="" />
-            ) : (
-              <div className={styles.capaVazia}>
-                <Icone nome="disco" tamanho={80} />
-              </div>
-            )}
-          </div>
-
-          <div className={styles.vidro}>
-            <div className={styles.identidade}>
-              <div className={`${styles.faixa} ${faixa?.titulo ? '' : styles.vazio}`}>
-                {faixa?.titulo || 'Nada tocando'}
-              </div>
-              <div className={styles.artista}>{faixa?.artista || ''}</div>
-            </div>
-
-            {temProgresso && (
-              <div className={styles.progresso}>
-                <input
-                  type="range"
-                  className={styles.faixaDeslize}
-                  style={{ '--pct': pct(faixa.posicao, faixa.duracao) }}
-                  min={0}
-                  max={Math.round(faixa.duracao)}
-                  value={Math.round(faixa.posicao)}
-                  aria-label="Posição da música"
-                  onPointerDown={() => {
-                    arrastando.current = true;
-                  }}
-                  onChange={(e) => setFaixa((f) => ({ ...f, posicao: Number(e.target.value) }))}
-                  onPointerUp={async (e) => {
-                    arrastando.current = false;
-                    await chamar('/api/seek', { segundos: Number(e.currentTarget.value) });
-                    setTimeout(atualizar, 300);
-                  }}
-                />
-                <div className={styles.tempos}>
-                  <span>{tempo(faixa.posicao)}</span>
-                  <span>{tempo(faixa.duracao)}</span>
+          <div className={styles.conteudo} onTouchStart={inicioToque} onTouchEnd={fimToque}>
+            <div className={styles.palco}>
+              {faixa?.capa ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className={styles.capa} src={faixa.capa} alt="" />
+              ) : (
+                <div className={styles.capaVazia}>
+                  <Icone nome="disco" tamanho={80} />
                 </div>
-              </div>
-            )}
-
-            <div className={styles.controles}>
-              <button
-                className={styles.passo}
-                onClick={() => comando('prev')}
-                aria-label="Faixa anterior"
-              >
-                <Icone nome="anterior" tamanho={26} />
-              </button>
-              <button
-                className={styles.tocar}
-                onClick={() => comando('playpause')}
-                aria-label={faixa?.tocando ? 'Pausar' : 'Tocar'}
-              >
-                <Icone nome={faixa?.tocando ? 'pausar' : 'tocar'} tamanho={28} />
-              </button>
-              <button
-                className={styles.passo}
-                onClick={() => comando('next')}
-                aria-label="Próxima faixa"
-              >
-                <Icone nome="proxima" tamanho={26} />
-              </button>
+              )}
             </div>
 
-            <div className={styles.som}>
-              <button
-                className={`${styles.somBotao} ${faixa?.mudo ? styles.somMudo : ''}`}
-                onClick={() => comando('mute')}
-                aria-label="Alternar mudo"
-              >
-                <Icone nome={faixa?.mudo ? 'mudo' : 'som'} tamanho={20} />
-              </button>
+            <div className={styles.vidro}>
+              <div className={styles.identidade}>
+                <div className={`${styles.faixa} ${faixa?.titulo ? '' : styles.vazio}`}>
+                  {faixa?.titulo || 'Nada tocando'}
+                </div>
+                <div className={styles.artista}>{faixa?.artista || ''}</div>
+              </div>
 
-              {completo ? (
-                <>
+              {temProgresso && (
+                <div className={styles.progresso}>
                   <input
                     type="range"
                     className={styles.faixaDeslize}
-                    style={{ '--pct': `${volume ?? 0}%`, flex: 1, minWidth: 0 }}
+                    style={{ '--pct': pct(faixa.posicao, faixa.duracao) }}
                     min={0}
-                    max={100}
-                    value={volume ?? 0}
-                    aria-label="Volume"
-                    onChange={(e) => {
-                      volumeFixado.current = true;
-                      setVolume(Number(e.target.value));
+                    max={Math.round(faixa.duracao)}
+                    value={Math.round(faixa.posicao)}
+                    aria-label="Posição da música"
+                    onPointerDown={() => {
+                      arrastando.current = true;
                     }}
-                    onPointerUp={(e) =>
-                      chamar('/api/volume', { valor: Number(e.currentTarget.value) })
-                    }
-                    onKeyUp={(e) => chamar('/api/volume', { valor: Number(e.currentTarget.value) })}
+                    onChange={(e) => setFaixa((f) => ({ ...f, posicao: Number(e.target.value) }))}
+                    onPointerUp={async (e) => {
+                      arrastando.current = false;
+                      await chamar('/api/seek', { segundos: Number(e.currentTarget.value) });
+                      setTimeout(atualizar, 300);
+                    }}
                   />
-                  <span className={styles.somValor}>{volume ?? '—'}</span>
-                </>
-              ) : (
-                <div className={styles.passos}>
-                  <button onClick={() => comando('voldown')}>Menos</button>
-                  <button onClick={() => comando('volup')}>Mais</button>
+                  <div className={styles.tempos}>
+                    <span>{tempo(faixa.posicao)}</span>
+                    <span>{tempo(faixa.duracao)}</span>
+                  </div>
                 </div>
               )}
+
+              <div className={styles.controles}>
+                <button
+                  className={styles.passo}
+                  onClick={() => comando('prev')}
+                  aria-label="Faixa anterior"
+                >
+                  <Icone nome="anterior" tamanho={26} />
+                </button>
+                <button
+                  className={styles.tocar}
+                  onClick={() => comando('playpause')}
+                  aria-label={faixa?.tocando ? 'Pausar' : 'Tocar'}
+                >
+                  <Icone nome={faixa?.tocando ? 'pausar' : 'tocar'} tamanho={28} />
+                </button>
+                <button
+                  className={styles.passo}
+                  onClick={() => comando('next')}
+                  aria-label="Próxima faixa"
+                >
+                  <Icone nome="proxima" tamanho={26} />
+                </button>
+              </div>
+
+              <div className={styles.som}>
+                <button
+                  className={`${styles.somBotao} ${faixa?.mudo ? styles.somMudo : ''}`}
+                  onClick={() => comando('mute')}
+                  aria-label="Alternar mudo"
+                >
+                  <Icone nome={faixa?.mudo ? 'mudo' : 'som'} tamanho={20} />
+                </button>
+
+                {completo ? (
+                  <>
+                    <input
+                      type="range"
+                      className={styles.faixaDeslize}
+                      style={{ '--pct': `${volume ?? 0}%`, flex: 1, minWidth: 0 }}
+                      min={0}
+                      max={100}
+                      value={volume ?? 0}
+                      aria-label="Volume"
+                      onChange={(e) => {
+                        volumeFixado.current = true;
+                        setVolume(Number(e.target.value));
+                      }}
+                      onPointerUp={(e) =>
+                        chamar('/api/volume', { valor: Number(e.currentTarget.value) })
+                      }
+                      onKeyUp={(e) =>
+                        chamar('/api/volume', { valor: Number(e.currentTarget.value) })
+                      }
+                    />
+                    <span className={styles.somValor}>{volume ?? '—'}</span>
+                  </>
+                ) : (
+                  <div className={styles.passos}>
+                    <button onClick={() => comando('voldown')}>Menos</button>
+                    <button onClick={() => comando('volup')}>Mais</button>
+                  </div>
+                )}
+              </div>
+
+              {completo ? (
+                <button className={styles.puxador} onClick={() => setVista('fila')}>
+                  <Icone nome="fila" tamanho={16} />
+                  Fila
+                </button>
+              ) : null}
             </div>
           </div>
 
@@ -314,6 +382,11 @@ export default function Pagina() {
             >
               {estado?.texto || ''}
             </div>
+            {!completo ? (
+              <p className={styles.nota}>
+                Abra o app desktop do YouTube Music no PC para ter capa, fila e volume exato.
+              </p>
+            ) : null}
             {faixa?.aviso ? <p className={styles.nota}>{faixa.aviso}</p> : null}
             {promptPwa ? (
               <button className={styles.instalar} onClick={instalar}>
@@ -378,6 +451,60 @@ export default function Pagina() {
           </button>
         </nav>
       </main>
+
+      <div
+        className={`${styles.cortina} ${vista === 'fila' ? styles.cortinaVisivel : ''}`}
+        onClick={() => setVista('normal')}
+      />
+
+      <aside className={`${styles.gaveta} ${vista === 'fila' ? styles.gavetaAberta : ''}`}>
+        <header
+          className={styles.gavetaTopo}
+          onTouchStart={inicioToque}
+          onTouchEnd={fimToque}
+        >
+          <span className={styles.puxadorBarra} />
+          <div className={styles.gavetaLinha}>
+            <span className={styles.gavetaTitulo}>
+              A seguir
+              {fila.itens.length ? <span className={styles.contador}>{fila.itens.length}</span> : null}
+            </span>
+            <button
+              className={styles.somBotao}
+              onClick={() => setVista('normal')}
+              aria-label="Fechar fila"
+            >
+              <Icone nome="fechar" tamanho={18} />
+            </button>
+          </div>
+        </header>
+
+        <div className={styles.gavetaLista}>
+          {fila.erro ? <p className={styles.nota}>{fila.erro}</p> : null}
+          {!fila.erro && !fila.itens.length ? <p className={styles.nota}>Fila vazia.</p> : null}
+          {fila.itens.map((item, i) => (
+            <button
+              key={`${item.id}-${item.indice}`}
+              className={`${styles.item} ${i === fila.atual ? styles.itemAtual : ''}`}
+              onClick={() => pular(item)}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={item.capa} alt="" loading="lazy" />
+              <span className={styles.coluna}>
+                <span className={styles.itemTitulo}>{item.titulo}</span>
+                <span className={styles.itemSub}>{item.artista}</span>
+              </span>
+              {i === fila.atual ? (
+                <span className={styles.tocandoAgora}>
+                  <Icone nome="onda" tamanho={16} />
+                </span>
+              ) : (
+                <span className={styles.duracao}>{item.duracao}</span>
+              )}
+            </button>
+          ))}
+        </div>
+      </aside>
     </>
   );
 }
