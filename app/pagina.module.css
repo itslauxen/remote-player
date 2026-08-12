@@ -741,14 +741,30 @@
   position: relative;
   overflow: hidden;
   border-radius: 14px;
-  transition: transform 0.18s ease;
+}
+
+.linhaAbrindo {
+  transition: transform 0.2s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .linhaArrastando {
-  z-index: 2;
+  position: relative;
+  z-index: 3;
   transition: none;
-  box-shadow: 0 12px 28px #000000a6;
-  background: #191c28;
+  overflow: visible;
+  border-radius: 16px;
+  box-shadow: 0 16px 34px #000000b3;
+  background: #1b1f2c;
+}
+
+.linhaArrastando .deslizavel {
+  background: transparent;
+  border-radius: 16px;
+}
+
+.linhaArrastando .pegador {
+  color: var(--acento);
+  opacity: 1;
 }
 
 .botaoLixeira {
@@ -795,6 +811,21 @@
 
 .pegador:active {
   color: var(--acento);
+  cursor: grabbing;
+}
+
+.removerDireto {
+  display: none;
+  place-items: center;
+  width: 38px;
+  align-self: stretch;
+  flex: 0 0 auto;
+  color: var(--tinta-fraca);
+  transition: color 0.15s ease;
+}
+
+.removerDireto:hover {
+  color: var(--alerta);
 }
 
 @media (min-width: 860px) {
@@ -911,13 +942,43 @@
     transform: translate(0, 0);
   }
 
-  .pegador {
+  .pegador,
+  .removerDireto {
     opacity: 0;
     transition: opacity 0.15s ease;
   }
 
-  .linhaFila:hover .pegador {
+  .removerDireto {
+    display: grid;
+  }
+
+  .linhaFila:hover .pegador,
+  .linhaFila:hover .removerDireto {
     opacity: 1;
+  }
+
+  .botaoLixeira {
+    display: none;
+  }
+
+  .deslizado {
+    transform: none;
+  }
+
+  .palco {
+    cursor: zoom-in;
+  }
+
+  .modoFoco .palco {
+    cursor: zoom-out;
+  }
+
+  .capa {
+    transition: transform 0.3s ease, max-height 0.4s ease;
+  }
+
+  .palco:hover .capa {
+    transform: scale(1.01);
   }
 }
 

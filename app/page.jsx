@@ -127,6 +127,17 @@ export default function Pagina() {
   const timer = useRef(null);
   const campo = useRef(null);
   const lista = useRef(null);
+  const ultimoAlvo = useRef(-1);
+  const gestou = useRef(0);
+
+  const alvoDe = useCallback(
+    (a) =>
+      Math.min(
+        fila.itens.length - 1,
+        Math.max(0, a.posicao + Math.round(a.dy / (a.altura || ALTURA_ITEM))),
+      ),
+    [fila.itens.length],
+  );
 
   const completo = !!faixa?.completo;
 
@@ -195,9 +206,15 @@ export default function Pagina() {
     const dx = t.clientX - toque.current.x;
     toque.current = null;
     if (Math.abs(dy) < 55 || Math.abs(dx) > Math.abs(dy)) return;
+    gestou.current = Date.now();
     navigator.vibrate?.(10);
     if (dy < 0) setVista((v) => (v === 'foco' ? 'normal' : 'fila'));
     else setVista((v) => (v === 'fila' ? 'normal' : 'foco'));
+  }
+
+  function cliqueCapa() {
+    if (Date.now() - gestou.current < 600) return;
+    setVista((v) => (v === 'foco' ? 'normal' : 'foco'));
   }
 
   async function comando(acao) {
@@ -289,30 +306,57 @@ export default function Pagina() {
 
   function inicioArrasto(e, item, posicao) {
     e.stopPropagation();
+    e.preventDefault();
+    e.currentTarget.setPointerCapture?.(e.pointerId);
     navigator.vibrate?.(14);
     setDeslizado(-1);
-    setArrasto({ indice: item.indice, posicao, y: e.touches[0].clientY, dy: 0 });
+    const linha = e.currentTarget.closest(`.${styles.linhaFila}`);
+    ultimoAlvo.current = posicao;
+    setArrasto({
+      indice: item.indice,
+      posicao,
+      y: e.clientY,
+      dy: 0,
+      altura: linha?.offsetHeight || ALTURA_ITEM,
+    });
   }
 
   function moveArrasto(e) {
     if (!arrasto) return;
-    e.preventDefault();
-    setArrasto((a) => (a ? { ...a, dy: e.touches[0].clientY - a.y } : a));
+    const dy = e.clientY - arrasto.y;
+    const alvo = alvoDe({ ...arrasto, dy });
+    if (alvo !== ultimoAlvo.current) {
+      ultimoAlvo.current = alvo;
+      navigator.vibrate?.(8);
+    }
+    setArrasto((a) => (a ? { ...a, dy } : a));
   }
 
   async function fimArrasto() {
     if (!arrasto) return;
-    const passos = Math.round(arrasto.dy / ALTURA_ITEM);
-    const alvo = Math.min(fila.itens.length - 1, Math.max(0, arrasto.posicao + passos));
+    const alvo = alvoDe(arrasto);
+    const origem = arrasto.posicao;
     const de = arrasto.indice;
     setArrasto(null);
-    if (!passos || alvo === arrasto.posicao) return;
+    if (alvo === origem) return;
     navigator.vibrate?.(12);
     const para = fila.itens[alvo]?.indice;
     if (para === undefined) return;
+
+    setFila((f) => {
+      const itens = [...f.itens];
+      const [movido] = itens.splice(origem, 1);
+      itens.splice(alvo, 0, movido);
+      let atual = f.atual;
+      if (f.atual === origem) atual = alvo;
+      else if (origem < f.atual && alvo >= f.atual) atual = f.atual - 1;
+      else if (origem > f.atual && alvo <= f.atual) atual = f.atual + 1;
+      return { ...f, itens, atual };
+    });
+
     const d = await chamar('/api/fila', { de, para }, 'PATCH');
     if (!d.ok) avisar(d.erro || 'não consegui reordenar', false);
-    setTimeout(carregarFila, 500);
+    setTimeout(carregarFila, 600);
   }
 
   async function instalar() {
@@ -377,7 +421,7 @@ export default function Pagina() {
 
         <section className={aba === 'tocando' ? classeTocando : styles.oculto}>
           <div className={styles.conteudo} onTouchStart={inicioToque} onTouchEnd={fimToque}>
-            <div className={styles.palco}>
+            <div className={styles.palco} onClick={cliqueCapa}>
               {faixa?.capa ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img className={styles.capa} src={faixa.capa} alt="" />
@@ -609,11 +653,26 @@ export default function Pagina() {
           {!fila.erro && !fila.itens.length ? <p className={styles.nota}>Fila vazia.</p> : null}
           {fila.itens.map((item, i) => {
             const arrastandoEste = arrasto?.indice === item.indice;
+            let deslocamento = 0;
+            if (arrasto && !arrastandoEste) {
+              const alvo = alvoDe(arrasto);
+              const origem = arrasto.posicao;
+              if (alvo > origem && i > origem && i <= alvo) deslocamento = -arrasto.altura;
+              else if (alvo < origem && i < origem && i >= alvo) deslocamento = arrasto.altura;
+            }
             return (
               <div
                 key={`${item.id}-${item.indice}`}
-                className={`${styles.linhaFila} ${arrastandoEste ? styles.linhaArrastando : ''}`}
-                style={arrastandoEste ? { transform: `translateY(${arrasto.dy}px)` } : undefined}
+                className={`${styles.linhaFila} ${arrastandoEste ? styles.linhaArrastando : ''} ${
+                  deslocamento ? styles.linhaAbrindo : ''
+                }`}
+                style={
+                  arrastandoEste
+                    ? { transform: `translateY(${arrasto.dy}px)` }
+                    : deslocamento
+                      ? { transform: `translateY(${deslocamento}px)` }
+                      : undefined
+                }
               >
                 <button
                   className={styles.botaoLixeira}
@@ -652,14 +711,26 @@ export default function Pagina() {
 
                   <span
                     className={styles.pegador}
-                    onTouchStart={(e) => inicioArrasto(e, item, i)}
-                    onTouchMove={moveArrasto}
-                    onTouchEnd={fimArrasto}
+                    onPointerDown={(e) => inicioArrasto(e, item, i)}
+                    onPointerMove={moveArrasto}
+                    onPointerUp={fimArrasto}
+                    onPointerCancel={fimArrasto}
                     role="button"
                     aria-label={`Reordenar ${item.titulo}`}
                   >
                     <Icone nome="pegar" tamanho={18} />
                   </span>
+
+                  <button
+                    className={styles.removerDireto}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      remover(item);
+                    }}
+                    aria-label={`Remover ${item.titulo} da fila`}
+                  >
+                    <Icone nome="lixeira" tamanho={17} />
+                  </button>
                 </div>
               </div>
             );
