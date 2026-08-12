@@ -158,6 +158,15 @@ export default {
     if (restantes) adiante.headers.set('Cookie', restantes);
     else adiante.headers.delete('Cookie');
     adiante.headers.delete('CF-Access-Jwt-Assertion');
+    // Origin e os Sec-Fetch-* descrevem o contexto do navegador em relacao ao
+    // hostname da frente. Repassados, fazem o Access de tras enxergar uma chamada
+    // cross-origin e aplicar CORS, derrubando o fetch do app -- enquanto abrir a
+    // mesma URL na barra de enderecos passa, porque navegacao nao manda Origin.
+    // Daqui para tras e servidor a servidor, entao esse contexto nao se aplica.
+    adiante.headers.delete('Origin');
+    adiante.headers.delete('Sec-Fetch-Site');
+    adiante.headers.delete('Sec-Fetch-Mode');
+    adiante.headers.delete('Sec-Fetch-Dest');
     for (const [chave, valor] of Object.entries(cabecalhosAccess(env))) {
       adiante.headers.set(chave, valor);
     }
@@ -165,11 +174,14 @@ export default {
     let resposta;
     try {
       resposta = await fetch(adiante);
-    } catch {
+    } catch (erro) {
+      // Sem isto a falha vira um 503 mudo e a tela so diz "nada tocando".
+      console.error(`${alvo}: ${url.pathname} nao foi adiante -- ${erro}`);
       return offline(alvo, nomes.filter((n) => n !== alvo), ehApi);
     }
     // 502 e a familia 52x sao o tunel dizendo que a origem sumiu.
     if (resposta.status === 502 || (resposta.status >= 520 && resposta.status <= 530)) {
+      console.error(`${alvo}: ${url.pathname} voltou ${resposta.status}`);
       return offline(alvo, nomes.filter((n) => n !== alvo), ehApi);
     }
     // Se a maquina de tras esta atras de Access e o service token nao passou, quem
