@@ -649,6 +649,15 @@ export default function Pagina() {
     setTimeout(atualizar, 350);
   }
 
+  // Manda o lado que se quer, em vez de um alternar: assim nao depende do
+  // estado que o plugin devolve, que logo apos um comando ainda vem antigo. O
+  // icone troca na hora e o servidor confirma depois.
+  async function alternarTocar() {
+    const tocando = !!faixa?.tocando;
+    setFaixa((f) => (f ? { ...f, tocando: !tocando } : f));
+    await comando(completo ? (tocando ? 'pause' : 'play') : 'playpause');
+  }
+
   function guardarRecente(q) {
     setRecentes((r) => {
       const novo = [q, ...r.filter((x) => x.toLowerCase() !== q.toLowerCase())].slice(0, 6);
@@ -1180,7 +1189,7 @@ export default function Pagina() {
                 </button>
                 <button
                   className={styles.tocar}
-                  onClick={() => comando('playpause')}
+                  onClick={alternarTocar}
                   aria-label={faixa?.tocando ? 'Pausar' : 'Tocar'}
                 >
                   <Icone nome={faixa?.tocando ? 'pausar' : 'tocar'} tamanho={30} />

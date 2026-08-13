@@ -22,14 +22,19 @@
   transition: opacity 0.35s ease;
 }
 
+/* 100dvh encolhe quando a barra do Safari aparece e cresce quando ela some, e
+   nesse meio tempo sobra uma faixa do fundo do sistema embaixo. Com 100lvh a
+   tela ocupa sempre a altura cheia e o proprio app pinta aquele pedaco; o
+   recuo de baixo mantem o conteudo fora da barra de inicio. */
 .tela {
   position: relative;
   display: flex;
   flex-direction: column;
-  height: 100dvh;
+  height: 100lvh;
+  min-height: 100dvh;
   max-width: 520px;
   margin: 0 auto;
-  padding: calc(14px + env(safe-area-inset-top)) 20px 0;
+  padding: calc(14px + env(safe-area-inset-top)) 20px env(safe-area-inset-bottom);
   overflow: hidden;
 }
 
@@ -1722,7 +1727,7 @@
 @media (min-width: 860px) {
   .tela {
     max-width: 1160px;
-    padding: calc(22px + env(safe-area-inset-top)) 40px 0;
+    padding: calc(22px + env(safe-area-inset-top)) 40px env(safe-area-inset-bottom);
   }
 
   .topo {
@@ -1914,9 +1919,11 @@
 }
 
 @media (orientation: landscape) and (max-height: 620px) {
+  /* Deitado o conteudo vai ate a borda, mas a base ainda respeita a barra de
+     inicio - senao ela aparece como uma faixa de outra cor. */
   .tela {
     max-width: 100%;
-    padding: 0;
+    padding: 0 0 env(safe-area-inset-bottom);
   }
 
   .topo {

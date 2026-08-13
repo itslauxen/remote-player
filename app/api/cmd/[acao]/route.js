@@ -3,7 +3,16 @@ import { obterBackend } from '@/lib/media';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const PERMITIDAS = new Set(['playpause', 'next', 'prev', 'volup', 'voldown', 'mute']);
+const PERMITIDAS = new Set([
+  'play',
+  'pause',
+  'playpause',
+  'next',
+  'prev',
+  'volup',
+  'voldown',
+  'mute',
+]);
 
 export async function POST(_req, { params }) {
   const { acao } = await params;
