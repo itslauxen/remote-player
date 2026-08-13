@@ -732,7 +732,11 @@ export default function Pagina() {
         onTouchStart={inicioToqueTela}
         onTouchEnd={fimToqueTela}
       >
-        <header className={`${styles.topo} ${vista === 'foco' ? styles.topoOculto : ''}`}>
+        <header
+          className={`${styles.topo} ${vista === 'foco' ? styles.topoOculto : ''} ${
+            vista === 'fila' ? styles.topoNaFila : ''
+          }`}
+        >
           <div className={styles.topoEsquerda}>
             {/* Na busca o volume nao aparece: nada ali depende dele. Deitado no
                 modo completo quem manda e o trilho da borda direita. */}

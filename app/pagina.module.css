@@ -10,10 +10,14 @@
   pointer-events: none;
 }
 
+/* O ultimo trecho fecha opaco no proprio --fundo: assim a base da tela tem
+   exatamente a cor do theme-color, e a barra do sistema deixa de aparecer como
+   uma faixa de outro tom. Em 96% sobrava um resto da capa borrada, e era ele
+   que escurecia a emenda. */
 .veu {
   position: fixed;
   inset: 0;
-  background: linear-gradient(180deg, #07080ce6 0%, #07080cb3 35%, #07080cf5 100%);
+  background: linear-gradient(180deg, #07080ce6 0%, #07080cb3 35%, var(--fundo) 86%);
   pointer-events: none;
   transition: opacity 0.35s ease;
 }
@@ -101,7 +105,12 @@
   color: var(--acento);
 }
 
+/* O view-transition-name faz do topo um contexto de empilhamento, entao o
+   z-index do menu de volume passou a valer so aqui dentro - sem esta camada
+   ele ficaria atras da capa. */
 .topo {
+  position: relative;
+  z-index: 12;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -866,6 +875,12 @@
 .topoOculto {
   opacity: 0;
   pointer-events: none;
+}
+
+/* Em pe a gaveta sobe da base e nao encosta no cabecalho; deitado ela vem
+   pela direita, bem por cima da nav - la o cabecalho sai de cena. */
+.topoNaFila {
+  opacity: 1;
 }
 
 /* Dica de gesto do 10b. */
@@ -1827,6 +1842,12 @@
     z-index: 12;
   }
 
+  /* Deitado a gaveta cobre justamente o canto da nav: o cabecalho sai. */
+  .topoNaFila {
+    opacity: 0;
+    pointer-events: none;
+  }
+
   .marca {
     display: none;
   }
@@ -1989,7 +2010,9 @@
     display: flex;
   }
 
-  .modoFoco .trilhoSom {
+  /* O trilho passa por cima da gaveta: some junto com a nav quando ela abre. */
+  .modoFoco .trilhoSom,
+  .modoFila .trilhoSom {
     opacity: 0;
     pointer-events: none;
   }
