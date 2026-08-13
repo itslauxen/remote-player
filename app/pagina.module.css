@@ -2165,7 +2165,9 @@
     grid-template-rows: repeat(2, var(--lado));
     grid-auto-flow: column;
     grid-auto-columns: var(--lado);
-    justify-content: start;
+    /* Centrado enquanto sobra largura; o safe evita que o primeiro icone saia
+       pela esquerda quando as colunas passam da tela e a rolagem entra. */
+    justify-content: safe center;
     align-content: center;
     gap: 14px 16px;
     overflow-x: auto;
