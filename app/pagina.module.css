@@ -26,7 +26,13 @@
   /* Deixa um resto da capa borrada aparecer no alto - so o bastante para o
      fundo pegar o tom do album. A base continua opaca, senao a barra do
      sistema volta a aparecer como faixa de outra cor. */
-  background: linear-gradient(180deg, #07080cbf 0%, #07080c8c 26%, #07080cd9 52%, var(--fundo) 72%);
+  background: linear-gradient(
+    180deg,
+    #07080cbf 0%,
+    #07080c8c 26%,
+    #07080cd9 52%,
+    var(--fundo-base) 72%
+  );
   pointer-events: none;
   transition: opacity 0.35s ease;
 }

@@ -1,5 +1,10 @@
 :root {
   --fundo: #07080c;
+  /* O iOS pinta o conteudo web alguns tons mais escuro que a barra do sistema,
+     mesmo com os dois declarando a mesma cor - medindo um print do PWA, a barra
+     saiu #07080d e a base do app #040407. Este tom compensa a diferenca, para
+     a emenda entre os dois sumir. So a base usa ele. */
+  --fundo-base: #0a0c12;
   --fundo-alto: #0e1017;
   --superficie: #12141d;
   --superficie-alta: #191c28;
