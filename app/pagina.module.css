@@ -1027,8 +1027,8 @@
    esta sangrando, senao o cartao do 10a perderia a base. */
 .arrastandoFoco .capa,
 .modoFoco .capa {
-  -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent 97%);
-  mask-image: linear-gradient(180deg, #000 55%, transparent 97%);
+  -webkit-mask-image: linear-gradient(180deg, #000 62%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 62%, transparent 100%);
 }
 
 .modoFoco .capaVazia {
@@ -1047,9 +1047,14 @@
   left: 0;
   right: 0;
   top: 0;
-  height: calc(var(--c0h, 64dvh) + (64dvh - var(--c0h, 64dvh)) * var(--foco));
+  /* Passa alguns pixels da borda da capa: fechar opaco exatamente nela deixaria
+     um fio visivel quando o arredondamento nao bate. */
+  height: calc(var(--c0h, 64dvh) + (64dvh - var(--c0h, 64dvh)) * var(--foco) + 24px);
   z-index: 6;
-  background: linear-gradient(180deg, #07080c00 26%, #07080cb3 46%, #07080c 62%);
+  /* Escurece so na parte de baixo e chega ao fundo junto com a imagem, que se
+     desmancha pela propria mascara - antes fechava opaco em 62% e cortava a
+     capa numa linha reta. */
+  background: linear-gradient(180deg, #07080c00 52%, #07080c73 76%, #07080c 94%);
   opacity: var(--foco);
   pointer-events: none;
 }
@@ -2153,16 +2158,14 @@
      nao funciona, porque a largura do icone so se conhece depois da altura e o
      grid resolveria a coluna em zero. */
   .grade {
-    --lado: min(calc((100dvh - 112px - env(safe-area-inset-bottom)) / 3), 108px);
+    --lado: min(calc((100dvh - 104px - env(safe-area-inset-bottom)) / 2), 132px);
     grid-template-columns: none;
-    grid-template-rows: repeat(3, var(--lado));
+    grid-template-rows: repeat(2, var(--lado));
     grid-auto-flow: column;
     grid-auto-columns: var(--lado);
-    /* Centrado enquanto sobra espaco; passa a encostar a esquerda so quando as
-       colunas enchem a largura e a rolagem entra. */
-    justify-content: safe center;
+    justify-content: start;
     align-content: center;
-    gap: 10px 14px;
+    gap: 14px 16px;
     overflow-x: auto;
     padding-bottom: calc(8px + env(safe-area-inset-bottom));
   }
