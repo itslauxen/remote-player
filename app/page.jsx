@@ -225,6 +225,7 @@ export default function Pagina() {
   const assentando = useRef(null);
   const quadroFoco = useRef(0);
   const proximoFoco = useRef(0);
+  const descida = useRef(0);
   const gestoItem = useRef(false);
   const toqueBusca = useRef(null);
   const buscaConsumida = useRef(false);
@@ -339,7 +340,7 @@ export default function Pagina() {
     if (!painel) return;
     painel.classList.remove(styles.assentando, styles.arrastandoFoco);
     escorregando.current = false;
-    painel.style.setProperty('--foco', vista === 'foco' ? '1' : '0');
+    aplicarFoco(vista === 'foco' ? 1 : 0);
   }, [vista]);
 
   // A lista de apps vem da maquina que esta tocando, entao so e pedida quando a
@@ -406,19 +407,37 @@ export default function Pagina() {
   function medirFoco() {
     const painel = painelTocando.current;
     const capa = painel?.querySelector(`.${styles.capa}, .${styles.capaVazia}`);
-    const vidro = painel?.querySelector(`.${styles.vidro}`);
-    if (!painel || !capa || !vidro) return false;
+    const controles = painel?.querySelector(`.${styles.controles}`);
+    if (!painel || !capa || !controles) return false;
 
     const c = capa.getBoundingClientRect();
-    const v = vidro.getBoundingClientRect();
-    const alvoDoVidro = window.innerHeight - v.height - 40;
+    // O alvo se mede pelos controles, nao pelo bloco inteiro: o a seguir e o
+    // equalizador somem na tela cheia, e contar com eles empurrava o player
+    // para cima, deixando aquela sobra embaixo.
+    const tela = painel.parentElement;
+    const r = tela.getBoundingClientRect();
+    const recuo = parseFloat(getComputedStyle(tela).paddingBottom) || 0;
+    const alvo = r.bottom - recuo - 28;
 
     painel.style.setProperty('--c0x', `${c.left}px`);
     painel.style.setProperty('--c0y', `${c.top}px`);
     painel.style.setProperty('--c0w', `${c.width}px`);
     painel.style.setProperty('--c0h', `${c.height}px`);
-    painel.style.setProperty('--vdy', `${alvoDoVidro - v.top}px`);
+    // O quanto o player desce fica em numero aqui, e a folha recebe o valor ja
+    // pronto: multiplicar var por var dentro de calc e o tipo de coisa que o
+    // compilador de CSS pode descartar, e o transform sumiria sem aviso.
+    descida.current = alvo - controles.getBoundingClientRect().bottom;
     return true;
+  }
+
+  function aplicarFoco(p) {
+    const painel = painelTocando.current;
+    if (!painel) return;
+    painel.style.setProperty('--foco', String(p));
+    // O deslocamento do player vai direto no elemento: por variavel dentro do
+    // transform ele nao chegava a valer.
+    const vidro = painel.querySelector(`.${styles.vidro}`);
+    if (vidro) vidro.style.transform = p ? `translateY(${descida.current * p}px)` : '';
   }
 
   // O dedo manda mais eventos do que a tela desenha: guarda o ultimo valor e
@@ -428,7 +447,7 @@ export default function Pagina() {
     if (quadroFoco.current) return;
     quadroFoco.current = requestAnimationFrame(() => {
       quadroFoco.current = 0;
-      painelTocando.current?.style.setProperty('--foco', String(proximoFoco.current));
+      aplicarFoco(proximoFoco.current);
     });
   }
 
@@ -442,7 +461,7 @@ export default function Pagina() {
     cancelAnimationFrame(quadroFoco.current);
     quadroFoco.current = 0;
     painel.classList.add(styles.assentando);
-    painel.style.setProperty('--foco', String(destino));
+    aplicarFoco(destino);
     assentando.current = setTimeout(() => setVista(destino ? 'foco' : 'normal'), 300);
   }
 
@@ -1225,7 +1244,11 @@ export default function Pagina() {
                       ver fila
                     </button>
                   </div>
-                  <div className={styles.aSeguirCard}>
+                  <button
+                    className={styles.aSeguirCard}
+                    onClick={() => pular(aSeguir)}
+                    aria-label={`Pular para ${aSeguir.titulo}`}
+                  >
                     {aSeguir.capa ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={aSeguir.capa} alt="" loading="lazy" />
@@ -1239,7 +1262,7 @@ export default function Pagina() {
                     {aSeguir.duracao ? (
                       <span className={styles.duracao}>{aSeguir.duracao}</span>
                     ) : null}
-                  </div>
+                  </button>
                 </div>
               ) : null}
 

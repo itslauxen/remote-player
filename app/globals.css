@@ -44,7 +44,13 @@ body {
   -webkit-font-smoothing: antialiased;
   user-select: none;
   position: fixed;
-  inset: 0;
+  /* Passa da base de proposito: o iOS muda a altura do viewport quando a barra
+     do sistema entra ou sai, e um body preso em inset 0 descobre uma faixa
+     nesse intervalo. O conteudo continua recuado pela area segura. */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: -80px;
 }
 
 button {

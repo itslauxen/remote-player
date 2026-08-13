@@ -14,10 +14,16 @@
    exatamente a cor do theme-color, e a barra do sistema deixa de aparecer como
    uma faixa de outro tom. Em 96% sobrava um resto da capa borrada, e era ele
    que escurecia a emenda. */
+/* Estica bem alem do viewport: quando a barra do Safari entra ou sai, a altura
+   muda e qualquer camada presa em 100% do viewport deixa uma faixa do fundo do
+   sistema aparecendo por baixo. Passando das bordas, nao ha o que aparecer. */
 .veu {
   position: fixed;
-  inset: 0;
-  background: linear-gradient(180deg, #07080ce6 0%, #07080cb3 35%, var(--fundo) 86%);
+  left: -10vw;
+  right: -10vw;
+  top: -10vh;
+  bottom: -20vh;
+  background: linear-gradient(180deg, #07080ce6 0%, #07080cb3 35%, var(--fundo) 70%);
   pointer-events: none;
   transition: opacity 0.35s ease;
 }
@@ -910,9 +916,17 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  width: 100%;
   padding: 7px 8px;
   border-radius: 12px;
   background: #ffffff0f;
+  text-align: left;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.aSeguirCard:active {
+  background: #ffffff1f;
+  transform: scale(0.98);
 }
 
 .aSeguirCard img {
@@ -1080,7 +1094,23 @@
 .modoFoco .vidro {
   position: relative;
   z-index: 7;
-  transform: translateY(calc(var(--vdy, 0px) * var(--foco)));
+}
+
+/* A capa sai do fluxo na tela cheia, entao o player fica sozinho na coluna:
+   empurrar por layout garante que ele assente na base. Deslocar por transform
+   nao vinga aqui - o valor chega ao elemento e mesmo assim e computado como
+   identidade. */
+.arrastandoFoco .conteudo,
+.modoFoco .conteudo {
+  justify-content: flex-end;
+  padding-bottom: 28px;
+}
+
+/* O .vidro carrega uma transicao de transform para outros usos; durante o
+   gesto ela transforma cada quadro numa animacao de 0,35s e o player anda
+   atrasado em relacao ao dedo. Quem anima e so o assentamento. */
+.arrastandoFoco .vidro {
+  transition: none;
 }
 
 .arrastandoFoco .topo,
@@ -1091,10 +1121,26 @@
   pointer-events: none;
 }
 
-.modoFoco .aSeguir,
+/* Somem junto com o gesto, nao de um quadro para o outro: apagam e escorregam
+   um pouco enquanto o foco abre. Ficam no layout de proposito - tira-los dele
+   no fim encolheria a coluna de uma vez e o player pularia. */
+.arrastandoFoco .ondasTopo,
 .modoFoco .ondasTopo,
+.arrastandoFoco .rotuloTocando,
 .modoFoco .rotuloTocando {
-  display: none;
+  opacity: calc(1 - var(--foco) * 2);
+  pointer-events: none;
+}
+
+/* Sai do fluxo em vez de sumir: assim o player assenta na base sem que o
+   espaco do a seguir continue reservado embaixo dele. */
+.arrastandoFoco .aSeguir,
+.modoFoco .aSeguir {
+  position: absolute;
+  left: 0;
+  right: 0;
+  opacity: calc(1 - var(--foco) * 2);
+  pointer-events: none;
 }
 
 /* Ao soltar, o resto do caminho vai sozinho - e so aqui existe transicao. */
