@@ -1119,13 +1119,9 @@
   z-index: 7;
 }
 
-
-/* O .vidro carrega uma transicao de transform para outros usos; durante o
-   gesto ela transforma cada quadro numa animacao de 0,35s e o player anda
-   atrasado em relacao ao dedo. Quem anima e so o assentamento. */
-.arrastandoFoco .vidro {
-  transition: none;
-}
+/* A transicao de transform do .vidro fica valendo durante o gesto de proposito:
+   cada quadro vira uma animacao curta e o player segue o dedo com uma inercia
+   atras. Seguir o dedo cru foi tentado e a descida ficou dura demais. */
 
 .arrastandoFoco .topo,
 .modoFoco .topo,
