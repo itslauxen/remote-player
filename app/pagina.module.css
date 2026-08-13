@@ -1099,15 +1099,6 @@
   z-index: 7;
 }
 
-/* A capa sai do fluxo na tela cheia, entao o player fica sozinho na coluna:
-   empurrar por layout garante que ele assente na base. Deslocar por transform
-   nao vinga aqui - o valor chega ao elemento e mesmo assim e computado como
-   identidade. */
-.arrastandoFoco .conteudo,
-.modoFoco .conteudo {
-  justify-content: flex-end;
-  padding-bottom: 28px;
-}
 
 /* O .vidro carrega uma transicao de transform para outros usos; durante o
    gesto ela transforma cada quadro numa animacao de 0,35s e o player anda
@@ -1128,13 +1119,11 @@
    um pouco enquanto o foco abre. Ficam no layout de proposito - tira-los dele
    no fim encolheria a coluna de uma vez e o player pularia. */
 /* Na tela cheia so o a seguir sai - titulo, equalizador, trilha e botoes
-   descem juntos. Ele sai do fluxo em vez de sumir, senao o espaco dele
-   continuaria reservado embaixo do player. */
+   descem juntos. Ele continua no fluxo, logo abaixo dos botoes: como a coluna
+   inteira desce, ele sai da tela por baixo enquanto apaga. Sem mexer no
+   layout, a volta anima igual a ida. */
 .arrastandoFoco .aSeguir,
 .modoFoco .aSeguir {
-  position: absolute;
-  left: 0;
-  right: 0;
   opacity: calc(1 - var(--foco) * 2);
   pointer-events: none;
 }

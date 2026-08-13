@@ -411,9 +411,9 @@ export default function Pagina() {
     if (!painel || !capa || !controles) return false;
 
     const c = capa.getBoundingClientRect();
-    // O alvo se mede pelos controles, nao pelo bloco inteiro: o a seguir e o
-    // equalizador somem na tela cheia, e contar com eles empurrava o player
-    // para cima, deixando aquela sobra embaixo.
+    // O alvo se mede pelos botoes, nao pelo bloco inteiro: abaixo deles fica o
+    // a seguir, que sai da tela junto com a descida. Medir pelo bloco deixava a
+    // altura dele sobrando embaixo do player.
     const tela = painel.parentElement;
     const r = tela.getBoundingClientRect();
     const recuo = parseFloat(getComputedStyle(tela).paddingBottom) || 0;
@@ -434,8 +434,8 @@ export default function Pagina() {
     const painel = painelTocando.current;
     if (!painel) return;
     painel.style.setProperty('--foco', String(p));
-    // O deslocamento do player vai direto no elemento: por variavel dentro do
-    // transform ele nao chegava a valer.
+    // A coluna inteira desce pelo transform: nao mexe no layout, entao a volta
+    // anima igual a ida e o a seguir apenas sai da tela por baixo.
     const vidro = painel.querySelector(`.${styles.vidro}`);
     if (vidro) vidro.style.transform = p ? `translateY(${descida.current * p}px)` : '';
   }
