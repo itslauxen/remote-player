@@ -1,4 +1,4 @@
-const CACHE = 'controle-ytm-v6';
+const CACHE = 'controle-ytm-v7';
 const CASCA = ['/', '/manifest.webmanifest', '/icone-192.png', '/icone-512.png'];
 
 function daRede(requisicao) {

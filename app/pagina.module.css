@@ -89,7 +89,12 @@
   flex: 0 0 auto;
 }
 
-/* So os icones: eles ja dizem que app e. A grade se acomoda sozinha. */
+/* So os icones: eles ja dizem que app e. A grade se acomoda sozinha.
+
+   Em linha que quebra, e nao em grade de colunas: com colunas fixas a ultima
+   linha incompleta encosta na esquerda, porque as colunas vazias continuam
+   ocupando o lugar delas. Assim cada linha se centra por conta, inclusive a
+   ultima - que e a regra quando o deck tem dois ou quatro atalhos. */
 .grade {
   flex: 1;
   min-height: 0;
@@ -97,20 +102,27 @@
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  align-content: start;
-  justify-items: center;
-  padding-bottom: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: center;
+  /* No meio da tela enquanto couber. O `safe` e o que evita o preco disso: sem
+     ele, uma lista mais alta que a area sobraria para os dois lados e o topo
+     ficaria inalcancavel, porque nao se rola para tras do inicio. */
+  align-content: safe center;
+  /* Folga para a sombra dos icones da ponta, que a rolagem vertical corta. */
+  padding: 0 6px 12px;
 }
 
 /* Afunda no dedo e volta com um pulinho - a volta e que da a resposta, entao
    ela tem a curva elastica e o dobro do tempo. */
+/* O teto e o que da o tamanho na maioria das telas; a divisao por tres so entra
+   em aparelho estreito, para caberem tres assim mesmo. */
 .cartaoApp {
   display: grid;
   place-items: center;
-  width: 100%;
+  flex: 0 0 auto;
+  width: min(76px, (100% - 28px) / 3);
   padding: 0;
   border-radius: 20px;
   background: none;
@@ -139,11 +151,10 @@
   height: 34px;
 }
 
-/* Toma a coluna inteira: em pe sao tres, entao o tamanho vem da largura da
-   tela e nao de um numero fixo. */
+/* Toma o cartao inteiro: o tamanho e decidido la, num lugar so. */
 .iconeAppGrande {
   width: 100%;
-  max-width: 132px;
+  max-width: none;
   aspect-ratio: 1;
   height: auto;
   border-radius: 24%;
@@ -2208,6 +2219,9 @@
      grid resolveria a coluna em zero. */
   .grade {
     --lado: calc((100dvh - 96px - env(safe-area-inset-bottom)) / 2);
+    /* Em pe a grade e linha que quebra; aqui as duas linhas e a rolagem para o
+       lado precisam do grid de volta. */
+    display: grid;
     grid-template-columns: none;
     grid-template-rows: repeat(2, var(--lado));
     grid-auto-flow: column;

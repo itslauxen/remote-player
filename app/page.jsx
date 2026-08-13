@@ -205,6 +205,9 @@ export default function Pagina() {
   const [somAberto, setSomAberto] = useState(false);
   // null = procurando, false = sem Worker na frente (acesso direto a esta maquina)
   const [dispositivos, setDispositivos] = useState(null);
+  // Qual maquina este celular esta controlando. O deck e guardado por maquina, e
+  // ate saber o nome nao da para ler nem gravar a lista certa.
+  const [maquina, setMaquina] = useState(null);
   // Zero = parado; qualquer outro valor e a hora em que o arrasto comecou.
   const arrastando = useRef(0);
   const volumeFixado = useRef(false);
@@ -233,6 +236,10 @@ export default function Pagina() {
   const somMoveu = useRef(false);
   const ultimoVolume = useRef(0);
   const envioVolume = useRef(0);
+  // Deitado a capa ja ocupa a tela inteira, entao nao ha foco para onde abrir e
+  // o gesto para baixo so atrapalhava. Um ref basta: quem le sao os handlers de
+  // toque, que nao precisam de novo render para enxergar o valor novo.
+  const deitado = useRef(false);
 
   // A lista mostra so o que vem depois da faixa atual, entao arrastar tambem
   // nao pode passar para tras dela.
@@ -329,9 +336,52 @@ export default function Pagina() {
   useEffect(() => {
     try {
       setRecentes(JSON.parse(localStorage.getItem('buscasRecentes') || '[]'));
-      setDeck(JSON.parse(localStorage.getItem('deckApps') || '[]'));
     } catch {}
   }, []);
+
+  // O mesmo celular controla as duas maquinas pelo mesmo endereco, entao e a
+  // mesma origem e o mesmo localStorage. Com uma chave so, o deck montado numa
+  // aparecia na outra: os apps de la nao existem aqui, nao rendem icone, nao
+  // abrem - e como a lista de edicao so mostra o que existe nesta maquina, nem
+  // dava para tirar. Quem sabe o nome da maquina e o Worker; sem ele o acesso e
+  // direto a uma so, e uma chave fixa resolve.
+  useEffect(() => {
+    let vivo = true;
+    (async () => {
+      let nome = 'local';
+      try {
+        const r = await fetch('/__dispositivos', { cache: 'no-store' });
+        if (r.ok) nome = (await r.json()).atual || 'local';
+      } catch {}
+      if (vivo) setMaquina(nome);
+    })();
+    return () => {
+      vivo = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!maquina) return;
+    try {
+      setDeck(JSON.parse(localStorage.getItem(`deckApps:${maquina}`) || '[]'));
+    } catch {
+      setDeck([]);
+    }
+  }, [maquina]);
+
+  // O deck antigo era unico. Na primeira visita de cada maquina ele e herdado,
+  // ficando so com o que existe deste lado; o resto nunca teve como funcionar
+  // aqui. Roda quando a lista de apps chega, que e quando da para saber isso.
+  useEffect(() => {
+    if (!maquina || appsMac === null) return;
+    if (localStorage.getItem(`deckApps:${maquina}`) !== null) return;
+    let antigo = [];
+    try {
+      antigo = JSON.parse(localStorage.getItem('deckApps') || '[]');
+    } catch {}
+    const daqui = new Set([...appsMac, ...acoesMac.map((a) => `acao:${a.id}`)]);
+    guardarDeck(antigo.filter((x) => daqui.has(x)));
+  }, [maquina, appsMac, acoesMac]);
 
   // Roda ja com a classe do estado novo aplicada, entao a capa nunca fica um
   // quadro sem regra nenhuma.
@@ -358,6 +408,18 @@ export default function Pagina() {
       vivo = false;
     };
   }, [aba]);
+
+  // A condicao e copia da que o CSS usa para virar o layout deitado: se as duas
+  // divergirem, o gesto some numa tela que ainda mostra o modo em pe.
+  useEffect(() => {
+    const consulta = window.matchMedia('(orientation: landscape) and (max-height: 620px)');
+    const ver = () => {
+      deitado.current = consulta.matches;
+    };
+    ver();
+    consulta.addEventListener('change', ver);
+    return () => consulta.removeEventListener('change', ver);
+  }, []);
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -491,7 +553,9 @@ export default function Pagina() {
     const dx = t.clientX - toque.current.x;
     if (Math.abs(dx) > Math.abs(dy)) return;
 
-    const abrindo = vista === 'normal' && dy > 0;
+    // Fechar continua valendo deitado: se a tela girou com o foco aberto, o
+    // gesto de volta precisa existir.
+    const abrindo = vista === 'normal' && dy > 0 && !deitado.current;
     const fechando = vista === 'foco' && dy < 0;
     if (!abrindo && !fechando) return;
 
@@ -710,8 +774,9 @@ export default function Pagina() {
 
   function guardarDeck(novo) {
     setDeck(novo);
+    if (!maquina) return;
     try {
-      localStorage.setItem('deckApps', JSON.stringify(novo));
+      localStorage.setItem(`deckApps:${maquina}`, JSON.stringify(novo));
     } catch {}
   }
 
@@ -930,11 +995,27 @@ export default function Pagina() {
     chamar('/api/volume', { valor });
   }
 
+  // Quanto o dedo anda para varrer o volume inteiro. O menu flutuante nao tem
+  // altura propria para medir, entao fica no valor fixo.
+  const CURSO_SOM = 170;
+
   // O arrasto vale em qualquer ponto do menu, inclusive sobre o botao de mudo:
   // se o dedo andou, o clique dele e descartado no fim.
-  function inicioSom(e) {
+  //
+  // `trilho` so vem no modo deitado, onde o arrasto acontece sobre uma barra de
+  // altura conhecida. Ali o curso sai dela: o volume inteiro cabe em menos da
+  // metade do trilho, entao chegar a 0 ou a 100 nao exige varrer a tela toda,
+  // e o gesto continua na mesma proporcao em qualquer tamanho de aparelho.
+  function inicioSom(e, trilho) {
     e.currentTarget.setPointerCapture?.(e.pointerId);
-    somArrasto.current = { y: e.clientY, base: volume ?? 0, moveu: false };
+    const altura = trilho?.getBoundingClientRect().height || 0;
+    somArrasto.current = {
+      y: e.clientY,
+      base: volume ?? 0,
+      moveu: false,
+      // O piso evita que uma tela muito baixa deixe o arrasto nervoso demais.
+      curso: altura ? Math.max(90, Math.min(CURSO_SOM, altura * 0.45)) : CURSO_SOM,
+    };
   }
 
   function moveSom(e) {
@@ -942,7 +1023,8 @@ export default function Pagina() {
     e.preventDefault();
     const dy = somArrasto.current.y - e.clientY;
     if (Math.abs(dy) > 4) somArrasto.current.moveu = true;
-    const novo = Math.round(Math.min(100, Math.max(0, somArrasto.current.base + (dy / 170) * 100)));
+    const curso = somArrasto.current.curso || CURSO_SOM;
+    const novo = Math.round(Math.min(100, Math.max(0, somArrasto.current.base + (dy / curso) * 100)));
     if (novo !== ultimoVolume.current) enviarVolume(novo);
   }
 
@@ -1288,7 +1370,7 @@ export default function Pagina() {
           {completo ? (
             <div
               className={styles.trilhoSom}
-              onPointerDown={inicioSom}
+              onPointerDown={(e) => inicioSom(e, e.currentTarget)}
               onPointerMove={moveSom}
               onPointerUp={fimSom}
               onPointerCancel={fimSom}
@@ -1461,8 +1543,8 @@ export default function Pagina() {
 
           {appsMac?.length === 0 ? (
             <p className={styles.nota}>
-              Os atalhos abrem apps da máquina que está tocando, e isso só vale quando ela é um
-              Mac.
+              Os atalhos abrem apps da máquina que está tocando, e ela não devolveu nenhum. Vale
+              para Mac e Windows.
             </p>
           ) : null}
 
@@ -1472,6 +1554,11 @@ export default function Pagina() {
               {[
                 ...acoesMac.map((a) => ({ item: `acao:${a.id}`, rotulo: a.nome, icone: a.icone })),
                 ...appsMac.map((nome) => ({ item: nome, rotulo: nome, icone: nome })),
+                // Guardado de outra maquina, ou de um app que foi desinstalado:
+                // sem uma linha propria ele ficaria no deck sem como desmarcar.
+                ...deck
+                  .filter((x) => !x.startsWith('acao:') && !appsMac.includes(x))
+                  .map((nome) => ({ item: nome, rotulo: `${nome} · não está aqui`, icone: nome })),
               ].map(({ item, rotulo, icone }) => {
                 const escolhido = deck.includes(item);
                 return (
