@@ -876,8 +876,18 @@
   color: var(--acento);
 }
 
-/* Em pe nao ha espaco: a fila ja esta a um gesto de distancia. */
+/* Ocupa a sobra abaixo do player, nas duas orientacoes. */
 .aSeguir {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  margin-top: 18px;
+}
+
+/* Com o equalizador ligado nao cabem os dois: o a seguir cede o lugar, senao
+   empurra a trilha para fora da tela. */
+.comEqualizador .aSeguir {
   display: none;
 }
 
@@ -2029,18 +2039,6 @@
 
   .aSeguir {
     order: 4;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    min-width: 0;
-    margin-top: 18px;
-    padding-top: 0;
-  }
-
-  /* Com o equalizador ligado nao cabem os dois: o a seguir cede o lugar, senao
-     empurra a trilha para fora da tela. */
-  .comEqualizador .aSeguir {
-    display: none;
   }
 
   .progresso {
