@@ -84,6 +84,15 @@ function Icone({ nome, tamanho = 24 }) {
     ),
     fechar: <path d="M6 6l12 12M18 6L6 18" />,
     mais: <path d="M12 5v14M5 12h14" />,
+    menos: <path d="M5 12h14" />,
+    grade: (
+      <>
+        <rect x="3" y="3" width="7.5" height="7.5" rx="2" />
+        <rect x="13.5" y="3" width="7.5" height="7.5" rx="2" />
+        <rect x="3" y="13.5" width="7.5" height="7.5" rx="2" />
+        <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2" />
+      </>
+    ),
     seta: <path d="m6 9 6 6 6-6" />,
     pegar: <path d="M5 9h14M5 15h14" />,
     equalizador: (
@@ -133,6 +142,27 @@ function Ondas({ classe, tocando }) {
   );
 }
 
+// O icone sai do proprio bundle do app. Quem guarda so o icone dentro do
+// Assets.car nao expoe .icns, e ai a inicial do nome faz as vezes dele.
+function IconeApp({ nome, grande }) {
+  const [falhou, setFalhou] = useState(false);
+  return (
+    <span className={grande ? styles.iconeAppGrande : styles.iconeApp}>
+      {falhou ? (
+        <span className={styles.inicialApp}>{nome.slice(0, 1)}</span>
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={`/api/apps/icone?app=${encodeURIComponent(nome)}`}
+          alt=""
+          loading="lazy"
+          onError={() => setFalhou(true)}
+        />
+      )}
+    </span>
+  );
+}
+
 async function chamar(url, corpo, metodo) {
   const verbo = metodo || (corpo === undefined ? 'GET' : 'POST');
   const temCorpo = corpo !== undefined && verbo !== 'GET' && verbo !== 'DELETE';
@@ -161,6 +191,10 @@ export default function Pagina() {
   const [resultados, setResultados] = useState([]);
   const [notaBusca, setNotaBusca] = useState('');
   const [recentes, setRecentes] = useState([]);
+  const [deck, setDeck] = useState([]);
+  // null = ainda procurando; [] = servidor nao e um Mac.
+  const [appsMac, setAppsMac] = useState(null);
+  const [editandoDeck, setEditandoDeck] = useState(false);
   const [promptPwa, setPromptPwa] = useState(null);
   const [volume, setVolume] = useState(null);
   const [fila, setFila] = useState({ itens: [], atual: -1, erro: '' });
@@ -288,8 +322,23 @@ export default function Pagina() {
   useEffect(() => {
     try {
       setRecentes(JSON.parse(localStorage.getItem('buscasRecentes') || '[]'));
+      setDeck(JSON.parse(localStorage.getItem('deckApps') || '[]'));
     } catch {}
   }, []);
+
+  // A lista de apps vem da maquina que esta tocando, entao so e pedida quando a
+  // aba abre - e de novo a cada visita, caso um app tenha sido instalado.
+  useEffect(() => {
+    if (aba !== 'deck') return;
+    let vivo = true;
+    (async () => {
+      const d = await chamar('/api/apps');
+      if (vivo) setAppsMac(d.apps || []);
+    })();
+    return () => {
+      vivo = false;
+    };
+  }, [aba]);
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -371,9 +420,15 @@ export default function Pagina() {
     focar(vista === 'foco' ? 'normal' : 'foco');
   }
 
-  const TELAS = ['tocando', 'busca', 'config'];
+  const TELAS = ['tocando', 'deck', 'busca', 'config'];
 
   function irPara(nome) {
+    if (nome === 'deck') {
+      setVista('normal');
+      setAba('deck');
+      setSomAberto(false);
+      return;
+    }
     if (nome === 'busca') {
       setVista('normal');
       setAba('busca');
@@ -393,7 +448,7 @@ export default function Pagina() {
   }
 
   function telaAtual() {
-    if (aba === 'busca' || aba === 'config') return aba;
+    if (aba === 'busca' || aba === 'config' || aba === 'deck') return aba;
     return vista === 'fila' ? 'fila' : 'tocando';
   }
 
@@ -477,6 +532,19 @@ export default function Pagina() {
   function buscarRecente(q) {
     setTermo(q);
     buscar(undefined, q);
+  }
+
+  function guardarDeck(novo) {
+    setDeck(novo);
+    try {
+      localStorage.setItem('deckApps', JSON.stringify(novo));
+    } catch {}
+  }
+
+  async function abrirNoMac(nome) {
+    navigator.vibrate?.(12);
+    const d = await chamar('/api/apps', { app: nome });
+    avisar(d.ok ? `${nome} aberto` : d.erro || 'não consegui abrir', d.ok);
   }
 
   async function tocar(item) {
@@ -821,7 +889,9 @@ export default function Pagina() {
               <span
                 className={styles.navBolha}
                 style={{
-                  transform: `translateX(${{ busca: 40, config: 80 }[telaAtual()] ?? 0}px)`,
+                  transform: `translateX(${
+                    { deck: 40, busca: 80, config: 120 }[telaAtual()] ?? 0
+                  }px)`,
                 }}
               />
               <button
@@ -830,6 +900,13 @@ export default function Pagina() {
                 aria-label="Tocando"
               >
                 <Icone nome="onda" tamanho={18} />
+              </button>
+              <button
+                className={telaAtual() === 'deck' ? styles.navAtivo : undefined}
+                onClick={() => irPara('deck')}
+                aria-label="Atalhos"
+              >
+                <Icone nome="grade" tamanho={18} />
               </button>
               <button
                 className={telaAtual() === 'busca' ? styles.navAtivo : undefined}
@@ -856,10 +933,7 @@ export default function Pagina() {
             onTouchEnd={fimToque}
             onWheel={aoRolar}
           >
-            <div
-              className={`${styles.palco} ${ondas ? styles.comOndas : ''}`}
-              onClick={cliqueCapa}
-            >
+            <div className={styles.palco} onClick={cliqueCapa}>
               {faixa?.capa ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img className={styles.capa} src={faixa.capa} alt="" />
@@ -868,7 +942,6 @@ export default function Pagina() {
                   <Icone nome="disco" tamanho={80} />
                 </div>
               )}
-              {ondas ? <Ondas classe={styles.ondasPalco} tocando={faixa?.tocando} /> : null}
               {/* O veu que funde a capa no fundo participa do morfo. */}
               {vista === 'foco' ? <div className={styles.veuFoco} aria-hidden /> : null}
             </div>
@@ -884,8 +957,6 @@ export default function Pagina() {
             ) : null}
 
             <div className={styles.vidro}>
-              {ondas ? <Ondas classe={styles.ondasTopo} tocando={faixa?.tocando} /> : null}
-
               <div className={styles.identidade}>
                 {/* So aparece deitado, como titulo da coluna de texto. */}
                 <div className={styles.rotuloTocando}>tocando agora</div>
@@ -977,6 +1048,10 @@ export default function Pagina() {
                   <Icone nome="equalizador" tamanho={22} />
                 </button>
               </div>
+
+              {/* Em pe fica logo abaixo dos botoes; deitado o order o coloca
+                  acima deles. A capa continua a vista nos dois casos. */}
+              {ondas ? <Ondas classe={styles.ondasTopo} tocando={faixa?.tocando} /> : null}
 
               {/* So aparece deitado, onde sobra espaco embaixo dos botoes. */}
               {aSeguir ? (
@@ -1183,6 +1258,75 @@ export default function Pagina() {
           </div>
 
           {notaBusca ? <p className={styles.nota}>{notaBusca}</p> : null}
+        </section>
+
+        <section className={aba === 'deck' ? styles.painelDeck : styles.oculto}>
+          <div className={styles.deckTopo}>
+            <h2 className={styles.tituloConfig}>Atalhos</h2>
+            {appsMac?.length ? (
+              <button
+                className={styles.limparFila}
+                onClick={() => setEditandoDeck((v) => !v)}
+              >
+                {editandoDeck ? 'pronto' : 'editar'}
+              </button>
+            ) : null}
+          </div>
+
+          {appsMac === null ? <p className={styles.nota}>Procurando apps…</p> : null}
+
+          {appsMac?.length === 0 ? (
+            <p className={styles.nota}>
+              Os atalhos abrem apps da máquina que está tocando, e isso só vale quando ela é um
+              Mac.
+            </p>
+          ) : null}
+
+          {editandoDeck && appsMac?.length ? (
+            <div className={styles.listaApps}>
+              {appsMac.map((nome) => {
+                const escolhido = deck.includes(nome);
+                return (
+                  <button
+                    key={nome}
+                    className={`${styles.linhaApp} ${escolhido ? styles.linhaAppNoDeck : ''}`}
+                    onClick={() =>
+                      guardarDeck(
+                        escolhido ? deck.filter((x) => x !== nome) : [...deck, nome],
+                      )
+                    }
+                  >
+                    <IconeApp nome={nome} />
+                    <span className={styles.itemTitulo}>{nome}</span>
+                    <span className={styles.marcaApp}>
+                      <Icone nome={escolhido ? 'menos' : 'mais'} tamanho={18} />
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+
+          {!editandoDeck && deck.length ? (
+            <div className={styles.grade}>
+              {deck.map((nome) => (
+                <button
+                  key={nome}
+                  className={styles.cartaoApp}
+                  onClick={() => abrirNoMac(nome)}
+                >
+                  <IconeApp nome={nome} grande />
+                  <span className={styles.nomeApp}>{nome}</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          {!editandoDeck && !deck.length && appsMac?.length ? (
+            <p className={styles.nota}>
+              Toque em editar e escolha os apps que você quer abrir daqui.
+            </p>
+          ) : null}
         </section>
 
         <section className={aba === 'config' ? styles.painelConfig : styles.oculto}>

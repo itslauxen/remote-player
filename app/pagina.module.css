@@ -55,6 +55,150 @@
   padding-top: 18px;
 }
 
+.painelDeck {
+  composes: painel;
+  gap: 12px;
+  padding-top: 18px;
+}
+
+.deckTopo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+
+/* A grade se acomoda sozinha: tres colunas em pe, seis deitado. */
+.grade {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(94px, 1fr));
+  gap: 10px;
+  align-content: start;
+  padding-bottom: 12px;
+}
+
+.cartaoApp {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  padding: 14px 8px;
+  border-radius: 18px;
+  background: #12141db8;
+  border: 1px solid var(--borda);
+  transition: transform 0.1s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.cartaoApp:active {
+  transform: scale(0.95);
+  background: var(--acento-fraco);
+  border-color: var(--acento);
+}
+
+.nomeApp {
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--tinta-media);
+  text-align: center;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.iconeApp,
+.iconeAppGrande {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #ffffff0f;
+}
+
+.iconeApp {
+  width: 34px;
+  height: 34px;
+}
+
+.iconeAppGrande {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+}
+
+.iconeApp img,
+.iconeAppGrande img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.inicialApp {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--tinta-media);
+  text-transform: uppercase;
+}
+
+.listaApps {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 12px;
+}
+
+.linhaApp {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 9px 10px;
+  border-radius: 14px;
+  text-align: left;
+  transition: background 0.15s ease;
+}
+
+.linhaApp:active {
+  background: #ffffff14;
+}
+
+.linhaAppNoDeck {
+  background: var(--acento-fraco);
+}
+
+.linhaAppNoDeck .itemTitulo {
+  color: var(--acento);
+}
+
+.marcaApp {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: #ffffff0f;
+  color: var(--tinta-media);
+}
+
+.linhaAppNoDeck .marcaApp {
+  color: var(--acento);
+}
+
 .tituloConfig {
   margin: 0;
   font-size: 13px;
@@ -217,38 +361,16 @@
   color: #ffffff26;
 }
 
-.ondasPalco,
+/* Um equalizador so, compacto, abaixo do player - a capa fica sempre a vista. */
 .ondasTopo {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 3px;
-}
-
-/* No celular em pe o equalizador escapa do padding da tela e para a 16px da
-   borda. A altura copia a da capa para o player nao mudar de lugar. */
-.ondasPalco {
-  width: calc(100vw - 32px);
-  max-width: calc(100vw - 32px);
-  margin-inline: calc(50% - 50vw + 16px);
-  height: min(calc(100vw - 40px), 50dvh);
-  padding: 0;
-  gap: 3px;
-}
-
-/* No celular vao metade das barras, com o dobro da largura cada. */
-.ondasPalco span:nth-child(even) {
-  display: none;
-}
-
-.ondasTopo {
-  display: none;
-  height: 132px;
-  margin-bottom: 26px;
+  height: 72px;
+  margin-top: 4px;
   gap: 4px;
 }
 
-.ondasPalco span,
 .ondasTopo span {
   flex: 1;
   min-width: 2px;
@@ -261,12 +383,6 @@
   mask-image: repeating-linear-gradient(180deg, #000 0 3px, transparent 3px 5px);
 }
 
-/* Precisa vir depois do bloco acima para vencer o max-width de la. */
-.ondasPalco span {
-  max-width: 13px;
-}
-
-.ondasPalco i,
 .ondasTopo i {
   width: 100%;
   height: var(--alt);
@@ -290,11 +406,6 @@
     transform: scaleY(1);
     opacity: 1;
   }
-}
-
-.comOndas .capa,
-.comOndas .capaVazia {
-  display: none;
 }
 
 .vidro {
@@ -1675,21 +1786,8 @@
     margin-bottom: 22px;
   }
 
-  .comOndas .capa,
-  .comOndas .capaVazia {
-    display: block;
-  }
-
-  .comOndas .capaVazia {
-    display: grid;
-  }
-
-  .ondasPalco {
-    display: none;
-  }
-
   .ondasTopo {
-    display: flex;
+    height: 132px;
   }
 
   /* No desktop as dicas de gesto de toque nao fazem sentido. */
@@ -2073,22 +2171,12 @@
 
   /* Deitado, o notch e o canto arredondado comem a lateral: o recuo acompanha a
      area segura, igual dos dois lados para nao ficar torto. */
+  .painelDeck,
   .painelConfig {
     padding-inline: max(28px, env(safe-area-inset-left), env(safe-area-inset-right));
     padding-top: calc(14px + env(safe-area-inset-top));
   }
 
-  .comOndas .capa {
-    display: block;
-  }
-
-  .comOndas .capaVazia {
-    display: grid;
-  }
-
-  .ondasPalco {
-    display: none;
-  }
 
   .rodapeTocando {
     position: absolute;
