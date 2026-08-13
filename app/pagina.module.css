@@ -2127,7 +2127,7 @@
      dos dois lados para nao ficar torto. */
   /* A margem direita desvia da pilula de navegacao, que flutua ali em cima. */
   .campoLinha {
-    margin: 14px calc(max(24px, env(safe-area-inset-right)) + 132px) 0
+    margin: 14px calc(max(24px, env(safe-area-inset-right)) + 168px) 0
       max(24px, env(safe-area-inset-left), env(safe-area-inset-right));
   }
 
@@ -2148,9 +2148,11 @@
     padding-top: calc(14px + env(safe-area-inset-top));
   }
 
-  /* A pilula de navegacao flutua no canto: o cabecalho do deck desvia dela. */
+  /* A pilula de navegacao flutua no canto: o titulo desvia dela. Deitado ele
+     tambem encolhe, para sobrar altura aos icones. */
   .deckTopo {
-    padding-right: 132px;
+    padding-right: 168px;
+    margin-bottom: -4px;
   }
 
   /* Deitado sobra largura e falta altura: tres linhas. O lado sai da altura
@@ -2158,7 +2160,7 @@
      nao funciona, porque a largura do icone so se conhece depois da altura e o
      grid resolveria a coluna em zero. */
   .grade {
-    --lado: min(calc((100dvh - 104px - env(safe-area-inset-bottom)) / 2), 132px);
+    --lado: calc((100dvh - 96px - env(safe-area-inset-bottom)) / 2);
     grid-template-columns: none;
     grid-template-rows: repeat(2, var(--lado));
     grid-auto-flow: column;
