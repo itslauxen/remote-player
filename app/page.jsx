@@ -170,7 +170,8 @@ export default function Pagina() {
   const [somAberto, setSomAberto] = useState(false);
   // null = procurando, false = sem Worker na frente (acesso direto a esta maquina)
   const [dispositivos, setDispositivos] = useState(null);
-  const arrastando = useRef(false);
+  // Zero = parado; qualquer outro valor e a hora em que o arrasto comecou.
+  const arrastando = useRef(0);
   const volumeFixado = useRef(false);
   const toque = useRef(null);
   const toqueTela = useRef(null);
@@ -220,7 +221,12 @@ export default function Pagina() {
   const atualizar = useCallback(async () => {
     const d = await chamar('/api/now');
     if (d.offline) return;
-    if (!arrastando.current) setFaixa(d);
+    // A marca de arrasto guarda a hora, nao um sim/nao: se algum evento de
+    // ponteiro se perder, ela expira sozinha e a tela nunca fica congelada.
+    if (!arrastando.current || Date.now() - arrastando.current > 4000) {
+      arrastando.current = 0;
+      setFaixa(d);
+    }
     if (!volumeFixado.current && d.volume != null) setVolume(d.volume);
   }, []);
 
@@ -716,6 +722,7 @@ export default function Pagina() {
     styles.painel,
     vista === 'foco' ? styles.modoFoco : '',
     vista === 'fila' ? styles.modoFila : '',
+    ondas ? styles.comEqualizador : '',
   ].join(' ');
 
   return (
@@ -899,13 +906,22 @@ export default function Pagina() {
                     value={Math.round(faixa.posicao)}
                     aria-label="Posição da música"
                     onPointerDown={() => {
-                      arrastando.current = true;
+                      arrastando.current = Date.now();
                     }}
                     onChange={(e) => setFaixa((f) => ({ ...f, posicao: Number(e.target.value) }))}
                     onPointerUp={async (e) => {
-                      arrastando.current = false;
+                      arrastando.current = 0;
                       await chamar('/api/seek', { segundos: Number(e.currentTarget.value) });
                       setTimeout(atualizar, 300);
+                    }}
+                    // No iOS o sistema toma o gesto e manda pointercancel no
+                    // lugar de pointerup. Sem isto a marca de arrasto ficava
+                    // presa e a tela parava de receber atualizacao nenhuma.
+                    onPointerCancel={() => {
+                      arrastando.current = 0;
+                    }}
+                    onLostPointerCapture={() => {
+                      arrastando.current = 0;
                     }}
                   />
                   <div className={styles.tempos}>

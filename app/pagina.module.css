@@ -1941,6 +1941,12 @@
     padding-top: 0;
   }
 
+  /* Com o equalizador ligado nao cabem os dois: o a seguir cede o lugar, senao
+     empurra a trilha para fora da tela. */
+  .comEqualizador .aSeguir {
+    display: none;
+  }
+
   .progresso {
     order: 5;
     margin: 14px 0 8px;
