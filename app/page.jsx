@@ -191,9 +191,11 @@ export default function Pagina() {
   const [resultados, setResultados] = useState([]);
   const [notaBusca, setNotaBusca] = useState('');
   const [recentes, setRecentes] = useState([]);
+  // Cada item do deck e o nome de um app, ou "acao:<id>" para as acoes fixas.
   const [deck, setDeck] = useState([]);
   // null = ainda procurando; [] = servidor nao e um Mac.
   const [appsMac, setAppsMac] = useState(null);
+  const [acoesMac, setAcoesMac] = useState([]);
   const [editandoDeck, setEditandoDeck] = useState(false);
   const [promptPwa, setPromptPwa] = useState(null);
   const [volume, setVolume] = useState(null);
@@ -333,7 +335,9 @@ export default function Pagina() {
     let vivo = true;
     (async () => {
       const d = await chamar('/api/apps');
-      if (vivo) setAppsMac(d.apps || []);
+      if (!vivo) return;
+      setAppsMac(d.apps || []);
+      setAcoesMac(d.acoes || []);
     })();
     return () => {
       vivo = false;
@@ -541,10 +545,15 @@ export default function Pagina() {
     } catch {}
   }
 
-  async function abrirNoMac(nome) {
+  // Uma acao guardada e "acao:<id>"; o resto e nome de app.
+  const acaoDe = (item) => acoesMac.find((a) => item === `acao:${a.id}`);
+
+  async function abrirNoMac(item) {
     navigator.vibrate?.(12);
-    const d = await chamar('/api/apps', { app: nome });
-    avisar(d.ok ? `${nome} aberto` : d.erro || 'não consegui abrir', d.ok);
+    const acao = acaoDe(item);
+    const d = await chamar('/api/apps', acao ? { acao: acao.id } : { app: item });
+    const rotulo = acao ? acao.nome : item;
+    avisar(d.ok ? `${rotulo} ✓` : d.erro || 'não consegui abrir', d.ok);
   }
 
   async function tocar(item) {
@@ -1284,20 +1293,22 @@ export default function Pagina() {
 
           {editandoDeck && appsMac?.length ? (
             <div className={styles.listaApps}>
-              {appsMac.map((nome) => {
-                const escolhido = deck.includes(nome);
+              {/* As acoes vem primeiro: sao poucas e nao se acham no meio dos apps. */}
+              {[
+                ...acoesMac.map((a) => ({ item: `acao:${a.id}`, rotulo: a.nome, icone: a.icone })),
+                ...appsMac.map((nome) => ({ item: nome, rotulo: nome, icone: nome })),
+              ].map(({ item, rotulo, icone }) => {
+                const escolhido = deck.includes(item);
                 return (
                   <button
-                    key={nome}
+                    key={item}
                     className={`${styles.linhaApp} ${escolhido ? styles.linhaAppNoDeck : ''}`}
                     onClick={() =>
-                      guardarDeck(
-                        escolhido ? deck.filter((x) => x !== nome) : [...deck, nome],
-                      )
+                      guardarDeck(escolhido ? deck.filter((x) => x !== item) : [...deck, item])
                     }
                   >
-                    <IconeApp nome={nome} />
-                    <span className={styles.itemTitulo}>{nome}</span>
+                    <IconeApp nome={icone} />
+                    <span className={styles.itemTitulo}>{rotulo}</span>
                     <span className={styles.marcaApp}>
                       <Icone nome={escolhido ? 'menos' : 'mais'} tamanho={18} />
                     </span>
@@ -1309,16 +1320,19 @@ export default function Pagina() {
 
           {!editandoDeck && deck.length ? (
             <div className={styles.grade}>
-              {deck.map((nome) => (
-                <button
-                  key={nome}
-                  className={styles.cartaoApp}
-                  onClick={() => abrirNoMac(nome)}
-                >
-                  <IconeApp nome={nome} grande />
-                  <span className={styles.nomeApp}>{nome}</span>
-                </button>
-              ))}
+              {deck.map((item) => {
+                const acao = acaoDe(item);
+                return (
+                  <button
+                    key={item}
+                    className={styles.cartaoApp}
+                    onClick={() => abrirNoMac(item)}
+                  >
+                    <IconeApp nome={acao ? acao.icone : item} grande />
+                    <span className={styles.nomeApp}>{acao ? acao.nome : item}</span>
+                  </button>
+                );
+              })}
             </div>
           ) : null}
 
