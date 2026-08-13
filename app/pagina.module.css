@@ -1059,8 +1059,8 @@
    esta sangrando, senao o cartao do 10a perderia a base. */
 .arrastandoFoco .capa,
 .modoFoco .capa {
-  -webkit-mask-image: linear-gradient(180deg, #000 62%, transparent 100%);
-  mask-image: linear-gradient(180deg, #000 62%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, #000 46%, #000000d9 66%, transparent 97%);
+  mask-image: linear-gradient(180deg, #000 46%, #000000d9 66%, transparent 97%);
 }
 
 .modoFoco .capaVazia {
@@ -1086,7 +1086,10 @@
   /* Escurece so na parte de baixo e chega ao fundo junto com a imagem, que se
      desmancha pela propria mascara - antes fechava opaco em 62% e cortava a
      capa numa linha reta. */
-  background: linear-gradient(180deg, #07080c00 52%, #07080c73 76%, #07080c 94%);
+  /* Nasce e morre transparente: fechando opaco, a borda de baixo do veu
+     encontrava o fundo tingido e virava justamente a linha que se via. Quem
+     desmancha a imagem e a mascara dela. */
+  background: linear-gradient(180deg, #07080c00 42%, #07080c8c 72%, #07080c00 100%);
   opacity: var(--foco);
   pointer-events: none;
 }
