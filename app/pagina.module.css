@@ -4,7 +4,7 @@
   background-image: var(--capa);
   background-size: cover;
   background-position: center;
-  filter: blur(60px) saturate(180%) brightness(0.55);
+  filter: blur(60px) saturate(200%) brightness(0.62);
   transform: scale(1.1);
   transition: background-image 0.6s ease;
   pointer-events: none;
@@ -23,7 +23,10 @@
   right: -10vw;
   top: -10vh;
   bottom: -20vh;
-  background: linear-gradient(180deg, #07080ce6 0%, #07080cb3 35%, var(--fundo) 70%);
+  /* Deixa um resto da capa borrada aparecer no alto - so o bastante para o
+     fundo pegar o tom do album. A base continua opaca, senao a barra do
+     sistema volta a aparecer como faixa de outra cor. */
+  background: linear-gradient(180deg, #07080cbf 0%, #07080c8c 26%, #07080cd9 52%, var(--fundo) 72%);
   pointer-events: none;
   transition: opacity 0.35s ease;
 }
@@ -1124,16 +1127,9 @@
 /* Somem junto com o gesto, nao de um quadro para o outro: apagam e escorregam
    um pouco enquanto o foco abre. Ficam no layout de proposito - tira-los dele
    no fim encolheria a coluna de uma vez e o player pularia. */
-.arrastandoFoco .ondasTopo,
-.modoFoco .ondasTopo,
-.arrastandoFoco .rotuloTocando,
-.modoFoco .rotuloTocando {
-  opacity: calc(1 - var(--foco) * 2);
-  pointer-events: none;
-}
-
-/* Sai do fluxo em vez de sumir: assim o player assenta na base sem que o
-   espaco do a seguir continue reservado embaixo dele. */
+/* Na tela cheia so o a seguir sai - titulo, equalizador, trilha e botoes
+   descem juntos. Ele sai do fluxo em vez de sumir, senao o espaco dele
+   continuaria reservado embaixo do player. */
 .arrastandoFoco .aSeguir,
 .modoFoco .aSeguir {
   position: absolute;
@@ -1143,11 +1139,13 @@
   pointer-events: none;
 }
 
-/* Ao soltar, o resto do caminho vai sozinho - e so aqui existe transicao. */
+/* Ao soltar, o resto do caminho vai sozinho - e so aqui existe transicao. O a
+   seguir entra na lista para nao aparecer de soco na volta. */
 .assentando .capa,
 .assentando .capaVazia,
 .assentando .veuFoco,
 .assentando .vidro,
+.assentando .aSeguir,
 .assentando .topo,
 .assentando .rodapeTocando {
   transition: width 0.3s cubic-bezier(0.32, 0.72, 0, 1),
