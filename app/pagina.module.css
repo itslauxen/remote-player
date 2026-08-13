@@ -78,13 +78,15 @@
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
   align-content: start;
   justify-items: center;
   padding-bottom: 12px;
 }
 
+/* Afunda no dedo e volta com um pulinho - a volta e que da a resposta, entao
+   ela tem a curva elastica e o dobro do tempo. */
 .cartaoApp {
   display: grid;
   place-items: center;
@@ -92,26 +94,13 @@
   border-radius: 20px;
   background: none;
   border: 0;
-  transition: transform 0.16s cubic-bezier(0.32, 0.72, 0, 1);
+  transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .cartaoApp:active {
-  transform: scale(0.86);
-}
-
-/* Some do dedo e volta com um pulinho, para o toque ter resposta propria. */
-.cartaoApp:active .iconeAppGrande {
-  animation: none;
-}
-
-.cartaoApp .iconeAppGrande {
-  animation: voltarDoToque 0.34s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-@keyframes voltarDoToque {
-  from {
-    transform: scale(0.86);
-  }
+  transform: scale(0.88);
+  transition-duration: 0.1s;
+  transition-timing-function: ease-out;
 }
 
 .iconeApp,
@@ -130,11 +119,11 @@
 }
 
 .iconeAppGrande {
-  width: 72px;
-  height: 72px;
-  border-radius: 17px;
+  width: 96px;
+  height: 96px;
+  border-radius: 22px;
   background: none;
-  box-shadow: 0 8px 20px #00000080;
+  box-shadow: 0 10px 26px #0000008c;
 }
 
 .iconeApp img,
@@ -2147,6 +2136,28 @@
   .painelConfig {
     padding-inline: max(28px, env(safe-area-inset-left), env(safe-area-inset-right));
     padding-top: calc(14px + env(safe-area-inset-top));
+  }
+
+  /* A pilula de navegacao flutua no canto: o cabecalho do deck desvia dela. */
+  .deckTopo {
+    padding-right: 132px;
+  }
+
+  /* Deitado sobra largura e falta altura: tres linhas, colunas a vontade. */
+  .grade {
+    grid-template-columns: none;
+    grid-template-rows: repeat(3, min-content);
+    grid-auto-flow: column;
+    grid-auto-columns: 88px;
+    justify-content: start;
+    gap: 12px 16px;
+    overflow-x: auto;
+  }
+
+  .iconeAppGrande {
+    width: 76px;
+    height: 76px;
+    border-radius: 18px;
   }
 
 
