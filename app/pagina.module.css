@@ -2148,26 +2148,33 @@
     padding-right: 132px;
   }
 
-  /* Deitado sobra largura e falta altura: tres linhas, colunas a vontade. */
+  /* Deitado sobra largura e falta altura: tres linhas. O lado sai da altura
+     que sobra, e vale para linha e coluna - dimensionar a coluna pelo conteudo
+     nao funciona, porque a largura do icone so se conhece depois da altura e o
+     grid resolveria a coluna em zero. */
   .grade {
+    --lado: min(calc((100dvh - 112px - env(safe-area-inset-bottom)) / 3), 108px);
     grid-template-columns: none;
-    grid-template-rows: repeat(3, 1fr);
+    grid-template-rows: repeat(3, var(--lado));
     grid-auto-flow: column;
-    grid-auto-columns: min-content;
-    justify-content: start;
+    grid-auto-columns: var(--lado);
+    /* Centrado enquanto sobra espaco; passa a encostar a esquerda so quando as
+       colunas enchem a largura e a rolagem entra. */
+    justify-content: safe center;
+    align-content: center;
     gap: 10px 14px;
     overflow-x: auto;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
   }
 
-  /* Deitado quem manda e a altura: tres linhas na tela deitada. */
   .cartaoApp {
-    width: auto;
-    height: 100%;
+    width: var(--lado);
+    height: var(--lado);
   }
 
   .iconeAppGrande {
-    width: auto;
-    height: 100%;
+    width: var(--lado);
+    height: var(--lado);
     max-width: none;
   }
 
