@@ -966,6 +966,9 @@ export default function Pagina() {
                 <div className={styles.artista}>{faixa?.artista || ''}</div>
               </div>
 
+              {/* Fica entre o texto e a trilha; deitado o order o mantem ali. */}
+              {ondas ? <Ondas classe={styles.ondasTopo} tocando={faixa?.tocando} /> : null}
+
               {temProgresso && (
                 <div className={styles.progresso}>
                   <input
@@ -1049,9 +1052,6 @@ export default function Pagina() {
                 </button>
               </div>
 
-              {/* Em pe fica logo abaixo dos botoes; deitado o order o coloca
-                  acima deles. A capa continua a vista nos dois casos. */}
-              {ondas ? <Ondas classe={styles.ondasTopo} tocando={faixa?.tocando} /> : null}
 
               {/* So aparece deitado, onde sobra espaco embaixo dos botoes. */}
               {aSeguir ? (

@@ -361,13 +361,14 @@
   color: #ffffff26;
 }
 
-/* Um equalizador so, compacto, abaixo do player - a capa fica sempre a vista. */
+/* Um equalizador so, compacto, logo acima da trilha - a capa fica sempre a
+   vista. */
 .ondasTopo {
   display: flex;
   align-items: flex-end;
   justify-content: center;
   height: 72px;
-  margin-top: 4px;
+  margin: 4px 0 10px;
   gap: 4px;
 }
 
