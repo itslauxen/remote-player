@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { flushSync } from 'react-dom';
 import styles from './pagina.module.css';
 
 const tempo = (s) => {
@@ -221,6 +220,11 @@ export default function Pagina() {
   const rolagem = useRef({ total: 0, quando: 0, disparo: 0 });
   const rolagemX = useRef({ total: 0, quando: 0, disparo: 0 });
   const arrastandoFila = useRef(false);
+  const painelTocando = useRef(null);
+  const escorregando = useRef(false);
+  const assentando = useRef(null);
+  const quadroFoco = useRef(0);
+  const proximoFoco = useRef(0);
   const gestoItem = useRef(false);
   const toqueBusca = useRef(null);
   const buscaConsumida = useRef(false);
@@ -328,6 +332,16 @@ export default function Pagina() {
     } catch {}
   }, []);
 
+  // Roda ja com a classe do estado novo aplicada, entao a capa nunca fica um
+  // quadro sem regra nenhuma.
+  useEffect(() => {
+    const painel = painelTocando.current;
+    if (!painel) return;
+    painel.classList.remove(styles.assentando, styles.arrastandoFoco);
+    escorregando.current = false;
+    painel.style.setProperty('--foco', vista === 'foco' ? '1' : '0');
+  }, [vista]);
+
   // A lista de apps vem da maquina que esta tocando, entao so e pedida quando a
   // aba abre - e de novo a cada visita, caso um app tenha sido instalado.
   useEffect(() => {
@@ -383,10 +397,97 @@ export default function Pagina() {
     navegar(dx < 0 ? -1 : 1);
   }
 
+  // Quanto o dedo precisa andar para completar a abertura da capa sangrada.
+  const CURSO_FOCO = 200;
+
+  // A capa e o player nao trocam de layout no fim do gesto: eles sao
+  // interpolados por --foco, que vai de 0 a 1 junto com o dedo. As medidas de
+  // partida vem do proprio elemento, entao a chegada bate com o layout real.
+  function medirFoco() {
+    const painel = painelTocando.current;
+    const capa = painel?.querySelector(`.${styles.capa}, .${styles.capaVazia}`);
+    const vidro = painel?.querySelector(`.${styles.vidro}`);
+    if (!painel || !capa || !vidro) return false;
+
+    const c = capa.getBoundingClientRect();
+    const v = vidro.getBoundingClientRect();
+    const alvoDoVidro = window.innerHeight - v.height - 40;
+
+    painel.style.setProperty('--c0x', `${c.left}px`);
+    painel.style.setProperty('--c0y', `${c.top}px`);
+    painel.style.setProperty('--c0w', `${c.width}px`);
+    painel.style.setProperty('--c0h', `${c.height}px`);
+    painel.style.setProperty('--vdy', `${alvoDoVidro - v.top}px`);
+    return true;
+  }
+
+  // O dedo manda mais eventos do que a tela desenha: guarda o ultimo valor e
+  // escreve um por quadro, senao cada touchmove reflui a capa e engasga.
+  function porFoco(p) {
+    proximoFoco.current = p;
+    if (quadroFoco.current) return;
+    quadroFoco.current = requestAnimationFrame(() => {
+      quadroFoco.current = 0;
+      painelTocando.current?.style.setProperty('--foco', String(proximoFoco.current));
+    });
+  }
+
+  // Solta o dedo: o resto do caminho vai sozinho, e so entao o estado troca. As
+  // classes saem depois, no efeito - tira-las junto com o setVista deixaria um
+  // quadro sem nenhuma delas, e a capa piscaria de volta ao fluxo.
+  function assentarFoco(destino) {
+    const painel = painelTocando.current;
+    if (!painel) return;
+    clearTimeout(assentando.current);
+    cancelAnimationFrame(quadroFoco.current);
+    quadroFoco.current = 0;
+    painel.classList.add(styles.assentando);
+    painel.style.setProperty('--foco', String(destino));
+    assentando.current = setTimeout(() => setVista(destino ? 'foco' : 'normal'), 300);
+  }
+
+  function focar(novo) {
+    const ir = novo === 'foco';
+    // Fechando, as medidas de origem sao as guardadas na abertura.
+    if (ir && !medirFoco()) return setVista(novo);
+    painelTocando.current?.classList.add(styles.arrastandoFoco);
+    if (!escorregando.current) porFoco(ir ? 0 : 1);
+    // Um quadro antes de mudar, senao a transicao nao tem de onde sair.
+    requestAnimationFrame(() => assentarFoco(ir ? 1 : 0));
+  }
+
   function inicioToque(e) {
     if (e.target.closest('input[type=range]')) return (toque.current = null);
     const t = e.touches[0];
     toque.current = { x: t.clientX, y: t.clientY };
+    escorregando.current = false;
+  }
+
+  // O gesto vertical na tela do tocando arrasta a capa em tempo real; os
+  // outros continuam sendo decididos so no fim.
+  function moveToque(e) {
+    if (!toque.current) return;
+    const t = e.touches[0];
+    const dy = t.clientY - toque.current.y;
+    const dx = t.clientX - toque.current.x;
+    if (Math.abs(dx) > Math.abs(dy)) return;
+
+    const abrindo = vista === 'normal' && dy > 0;
+    const fechando = vista === 'foco' && dy < 0;
+    if (!abrindo && !fechando) return;
+
+    if (!escorregando.current) {
+      if (Math.abs(dy) < 8) return;
+      // So mede ao abrir: fechando, a capa ja esta expandida e remedi-la
+      // apagaria justamente o tamanho de origem para onde ela precisa voltar.
+      if (abrindo && !medirFoco()) return;
+      escorregando.current = true;
+      clearTimeout(assentando.current);
+      painelTocando.current?.classList.remove(styles.assentando);
+      painelTocando.current?.classList.add(styles.arrastandoFoco);
+    }
+    const andado = Math.min(1, Math.abs(dy) / CURSO_FOCO);
+    porFoco(abrindo ? andado : 1 - andado);
   }
 
   function fimToque(e) {
@@ -395,33 +496,74 @@ export default function Pagina() {
     const dy = t.clientY - toque.current.y;
     const dx = t.clientX - toque.current.x;
     toque.current = null;
+
+    // Metade do curso ja decide: o dedo nao precisa ir ate o fim.
+    if (escorregando.current) {
+      gestou.current = Date.now();
+      const andado = Math.min(1, Math.abs(dy) / CURSO_FOCO);
+      const passou = andado > 0.4;
+      const abrindo = vista === 'normal';
+      navigator.vibrate?.(10);
+      return assentarFoco(abrindo === passou ? 1 : 0);
+    }
+
     if (Math.abs(dy) < 55 || Math.abs(dx) > Math.abs(dy)) return;
     gestou.current = Date.now();
     navigator.vibrate?.(10);
     if (dy < 0) {
-      if (vista === 'foco') focar('normal');
-      else setVista('fila');
-    } else {
-      if (vista === 'fila') setVista('normal');
-      else focar('foco');
-    }
-  }
-
-  // Entre 10a e a capa sangrada o navegador morfa capa, player e cabecalho
-  // entre os layouts reais - nas duas direcoes, sem posicao chutada. Onde nao
-  // ha View Transitions a troca e seca, como antes.
-  function focar(novo) {
-    const aplicar = () => setVista(novo);
-    if (document.startViewTransition) {
-      document.startViewTransition(() => flushSync(aplicar));
-    } else {
-      aplicar();
+      if (vista !== 'foco') setVista('fila');
+    } else if (vista === 'fila') {
+      setVista('normal');
     }
   }
 
   function cliqueCapa() {
     if (Date.now() - gestou.current < 600) return;
     focar(vista === 'foco' ? 'normal' : 'foco');
+  }
+
+  // A trilha e desenhada a mao: o input[type=range] amarra o arrasto ao thumb,
+  // e no iOS isso deixa o toque no meio da barra sem efeito. Aqui o segundo sai
+  // direto de onde o dedo esta, em qualquer ponto da faixa de 44px.
+  function segundosEm(e) {
+    const r = e.currentTarget.getBoundingClientRect();
+    const p = Math.min(1, Math.max(0, (e.clientX - r.left) / (r.width || 1)));
+    return p * (faixa?.duracao || 0);
+  }
+
+  function inicioTrilha(e) {
+    if (!temProgresso) return;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    arrastando.current = Date.now();
+    const segundos = segundosEm(e);
+    setFaixa((f) => ({ ...f, posicao: segundos }));
+  }
+
+  function moveTrilha(e) {
+    if (!arrastando.current) return;
+    arrastando.current = Date.now();
+    const segundos = segundosEm(e);
+    setFaixa((f) => ({ ...f, posicao: segundos }));
+  }
+
+  async function fimTrilha(e) {
+    if (!arrastando.current) return;
+    const segundos = segundosEm(e);
+    arrastando.current = 0;
+    setFaixa((f) => ({ ...f, posicao: segundos }));
+    await chamar('/api/seek', { segundos: Math.round(segundos) });
+    setTimeout(atualizar, 300);
+  }
+
+  async function teclaTrilha(e) {
+    if (!temProgresso) return;
+    const passo = { ArrowLeft: -5, ArrowRight: 5, ArrowDown: -5, ArrowUp: 5 }[e.key];
+    if (!passo) return;
+    e.preventDefault();
+    const segundos = Math.min(faixa.duracao, Math.max(0, faixa.posicao + passo));
+    setFaixa((f) => ({ ...f, posicao: segundos }));
+    await chamar('/api/seek', { segundos: Math.round(segundos) });
+    setTimeout(atualizar, 300);
   }
 
   const TELAS = ['tocando', 'deck', 'busca', 'config'];
@@ -935,10 +1077,14 @@ export default function Pagina() {
           </div>
         </header>
 
-        <section className={aba === 'tocando' ? classeTocando : styles.oculto}>
+        <section
+          ref={painelTocando}
+          className={aba === 'tocando' ? classeTocando : styles.oculto}
+        >
           <div
             className={styles.conteudo}
             onTouchStart={inicioToque}
+            onTouchMove={moveToque}
             onTouchEnd={fimToque}
             onWheel={aoRolar}
           >
@@ -951,8 +1097,8 @@ export default function Pagina() {
                   <Icone nome="disco" tamanho={80} />
                 </div>
               )}
-              {/* O veu que funde a capa no fundo participa do morfo. */}
-              {vista === 'foco' ? <div className={styles.veuFoco} aria-hidden /> : null}
+              {/* Acompanha o dedo junto com a capa; em 0 fica invisivel. */}
+              <div className={styles.veuFoco} aria-hidden />
             </div>
 
             {/* Na capa sangrada o cabecalho some; a pill diz como voltar. */}
@@ -980,33 +1126,30 @@ export default function Pagina() {
 
               {temProgresso && (
                 <div className={styles.progresso}>
-                  <input
-                    type="range"
-                    className={styles.faixaDeslize}
-                    style={{ '--pct': pct(faixa.posicao, faixa.duracao) }}
-                    min={0}
-                    max={Math.round(faixa.duracao)}
-                    value={Math.round(faixa.posicao)}
+                  <div
+                    className={styles.trilha}
+                    role="slider"
                     aria-label="Posição da música"
-                    onPointerDown={() => {
-                      arrastando.current = Date.now();
-                    }}
-                    onChange={(e) => setFaixa((f) => ({ ...f, posicao: Number(e.target.value) }))}
-                    onPointerUp={async (e) => {
-                      arrastando.current = 0;
-                      await chamar('/api/seek', { segundos: Number(e.currentTarget.value) });
-                      setTimeout(atualizar, 300);
-                    }}
-                    // No iOS o sistema toma o gesto e manda pointercancel no
-                    // lugar de pointerup. Sem isto a marca de arrasto ficava
-                    // presa e a tela parava de receber atualizacao nenhuma.
+                    aria-valuemin={0}
+                    aria-valuemax={Math.round(faixa.duracao)}
+                    aria-valuenow={Math.round(faixa.posicao)}
+                    tabIndex={0}
+                    onPointerDown={inicioTrilha}
+                    onPointerMove={moveTrilha}
+                    onPointerUp={fimTrilha}
+                    // No iOS o sistema as vezes toma o gesto: sem isto a marca
+                    // de arrasto ficaria presa e a tela pararia de atualizar.
                     onPointerCancel={() => {
                       arrastando.current = 0;
                     }}
-                    onLostPointerCapture={() => {
-                      arrastando.current = 0;
-                    }}
-                  />
+                    onKeyDown={teclaTrilha}
+                  >
+                    <span className={styles.trilhaFundo} />
+                    <span
+                      className={styles.trilhaCheia}
+                      style={{ width: pct(faixa.posicao, faixa.duracao) }}
+                    />
+                  </div>
                   <div className={styles.tempos}>
                     <span>{tempo(faixa.posicao)}</span>
                     {/* O lado direito mostra quanto falta, como num player. */}
@@ -1322,14 +1465,16 @@ export default function Pagina() {
             <div className={styles.grade}>
               {deck.map((item) => {
                 const acao = acaoDe(item);
+                const rotulo = acao ? acao.nome : item;
                 return (
                   <button
                     key={item}
                     className={styles.cartaoApp}
                     onClick={() => abrirNoMac(item)}
+                    aria-label={rotulo}
+                    title={rotulo}
                   >
                     <IconeApp nome={acao ? acao.icone : item} grande />
-                    <span className={styles.nomeApp}>{acao ? acao.nome : item}</span>
                   </button>
                 );
               })}

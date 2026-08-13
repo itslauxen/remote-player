@@ -69,7 +69,7 @@
   flex: 0 0 auto;
 }
 
-/* A grade se acomoda sozinha: tres colunas em pe, seis deitado. */
+/* So os icones: eles ja dizem que app e. A grade se acomoda sozinha. */
 .grade {
   flex: 1;
   min-height: 0;
@@ -78,39 +78,40 @@
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(94px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 16px;
   align-content: start;
+  justify-items: center;
   padding-bottom: 12px;
 }
 
 .cartaoApp {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 9px;
-  padding: 14px 8px;
-  border-radius: 18px;
-  background: #12141db8;
-  border: 1px solid var(--borda);
-  transition: transform 0.1s ease, background 0.15s ease, border-color 0.15s ease;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 20px;
+  background: none;
+  border: 0;
+  transition: transform 0.16s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .cartaoApp:active {
-  transform: scale(0.95);
-  background: var(--acento-fraco);
-  border-color: var(--acento);
+  transform: scale(0.86);
 }
 
-.nomeApp {
-  font-size: 11px;
-  line-height: 1.3;
-  color: var(--tinta-media);
-  text-align: center;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+/* Some do dedo e volta com um pulinho, para o toque ter resposta propria. */
+.cartaoApp:active .iconeAppGrande {
+  animation: none;
+}
+
+.cartaoApp .iconeAppGrande {
+  animation: voltarDoToque 0.34s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes voltarDoToque {
+  from {
+    transform: scale(0.86);
+  }
 }
 
 .iconeApp,
@@ -129,9 +130,11 @@
 }
 
 .iconeAppGrande {
-  width: 52px;
-  height: 52px;
-  border-radius: 12px;
+  width: 72px;
+  height: 72px;
+  border-radius: 17px;
+  background: none;
+  box-shadow: 0 8px 20px #00000080;
 }
 
 .iconeApp img,
@@ -249,9 +252,8 @@
   color: var(--acento);
 }
 
-/* O view-transition-name faz do topo um contexto de empilhamento, entao o
-   z-index do menu de volume passou a valer so aqui dentro - sem esta camada
-   ele ficaria atras da capa. */
+/* Sem esta camada o menu de volume fica atras da capa, que sai do fluxo e
+   sobe de z-index quando o foco abre. */
 .topo {
   position: relative;
   z-index: 12;
@@ -505,52 +507,40 @@
   box-shadow: 0 2px 10px #000000b3;
 }
 
-/* 8a: a linha tem 4px, mas quem recebe o dedo e a faixa inteira de 44px.
-   Sem alvo (7b): a ponta acesa do gradiente ja diz onde esta. */
-.progresso .faixaDeslize {
+/* 8a/7b: a linha tem 4px, mas quem recebe o dedo e a faixa inteira de 44px,
+   e nao ha alvo desenhado - a ponta acesa ja diz onde esta. */
+.trilha {
+  position: relative;
+  display: flex;
+  align-items: center;
   height: 44px;
-  /* O gesto na trilha e todo dela; sem isto o navegador disputa o arrasto. */
   touch-action: none;
+  cursor: pointer;
 }
 
-.progresso .faixaDeslize::-webkit-slider-runnable-track {
+.trilha:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.trilhaFundo,
+.trilhaCheia {
+  position: absolute;
+  left: 0;
   height: 4px;
-  background: linear-gradient(
-    90deg,
-    #0891b2,
-    var(--acento) var(--pct, 0%),
-    #ffffff1f var(--pct, 0%)
-  );
+  border-radius: 999px;
+  pointer-events: none;
 }
 
-.progresso .faixaDeslize::-moz-range-track {
-  height: 4px;
-  background: linear-gradient(
-    90deg,
-    #0891b2,
-    var(--acento) var(--pct, 0%),
-    #ffffff1f var(--pct, 0%)
-  );
+.trilhaFundo {
+  right: 0;
+  background: #ffffff1f;
 }
 
-/* O alvo existe para o dedo, nao para o olho: 44px agarraveis, transparentes.
-   No iOS o arrasto do range depende do thumb - com 0x0 nada se arrasta. */
-.progresso .faixaDeslize::-webkit-slider-thumb {
-  width: 44px;
-  height: 44px;
-  margin-top: -20px;
-  border-radius: 50%;
-  background: transparent;
-  box-shadow: none;
-}
-
-.progresso .faixaDeslize::-moz-range-thumb {
-  width: 44px;
-  height: 44px;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
-  box-shadow: none;
+.trilhaCheia {
+  background: linear-gradient(90deg, #0891b2, var(--acento));
+  box-shadow: 0 0 16px #22d3eecc, 0 0 4px #22d3ee;
 }
 
 /* 10a: controles espalhados de ponta a ponta, com o play maior no centro. */
@@ -629,15 +619,6 @@
 
 .volumeBotaoAtivo {
   background: #22d3ee29;
-}
-
-/* O morfo entre 10a e 10b usa a mesma curva da gaveta. */
-::view-transition-group(capa),
-::view-transition-group(player),
-::view-transition-group(topo),
-::view-transition-group(veu) {
-  animation-duration: 0.34s;
-  animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 /* Aviso unico para qualquer tela: enfileirar, comandos, erros. */
@@ -1023,86 +1004,96 @@
 }
 
 /* 10b: a capa sangra nas tres bordas e o player continua legivel no degrade.
-   A entrada anima do lugar onde as coisas estavam no 10a: a capa cresce das
-   margens para as bordas e o player desce ate a base. */
-.capa,
-.capaVazia {
-  view-transition-name: capa;
+   A capa e o player sao interpolados por --foco, que vai de 0 a 1 junto com o
+   dedo: nada espera o fim do gesto. As medidas de partida (--c0*) sao lidas do
+   proprio elemento quando o gesto comeca, entao a chegada bate com o layout
+   real. */
+.painel {
+  --foco: 0;
 }
 
-.vidro {
-  view-transition-name: player;
-}
-
-.topo {
-  view-transition-name: topo;
-}
-
-.modoFoco .rodapeTocando {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.modoFoco .palco {
+/* Enquanto o dedo manda, nada tem transicao: a posicao e a do dedo. */
+.arrastandoFoco .capa,
+.arrastandoFoco .capaVazia,
+.modoFoco .capa,
+.modoFoco .capaVazia {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: block;
   z-index: 5;
+  left: calc(var(--c0x, 0px) * (1 - var(--foco)));
+  top: calc(var(--c0y, 0px) * (1 - var(--foco)));
+  width: calc(var(--c0w, 100vw) + (100vw - var(--c0w, 100vw)) * var(--foco));
+  height: calc(var(--c0h, 64dvh) + (64dvh - var(--c0h, 64dvh)) * var(--foco));
+  max-width: none;
+  max-height: none;
+  border-radius: calc(26px * (1 - var(--foco)));
+  box-shadow: none;
 }
 
-/* O veu e um elemento de verdade para entrar no morfo junto com a capa - como
-   pseudo-elemento ele so aparecia quando a transicao acabava. Escuro completo
-   antes do fim da capa (64dvh), para nao sobrar linha na base da imagem. */
-.veuFoco {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, #07080c00 26%, #07080cb3 46%, #07080c 62%);
-  pointer-events: none;
-  view-transition-name: veu;
-}
-
-/* A propria imagem se dissolve no fundo, em vez de acabar numa aresta. */
+/* A imagem se dissolve no fundo em vez de acabar numa aresta - so quando ja
+   esta sangrando, senao o cartao do 10a perderia a base. */
+.arrastandoFoco .capa,
 .modoFoco .capa {
   -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent 97%);
   mask-image: linear-gradient(180deg, #000 55%, transparent 97%);
 }
 
-.modoFoco .capa,
-.modoFoco .capaVazia {
-  width: 100vw;
-  height: 64dvh;
-  max-width: none;
-  max-height: none;
-  border-radius: 0;
-  box-shadow: none;
-}
-
-
 .modoFoco .capaVazia {
   place-items: center;
 }
 
-.modoFoco .vidro {
+/* O palco segura o proprio espaco enquanto a capa sai do fluxo. */
+.arrastandoFoco .palco,
+.modoFoco .palco {
+  height: var(--c0h, 0px);
+  flex: 0 0 auto;
+}
+
+.veuFoco {
   position: fixed;
-  left: 24px;
-  right: 24px;
-  bottom: 40px;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: calc(var(--c0h, 64dvh) + (64dvh - var(--c0h, 64dvh)) * var(--foco));
   z-index: 6;
-  padding: 0;
+  background: linear-gradient(180deg, #07080c00 26%, #07080cb3 46%, #07080c 62%);
+  opacity: var(--foco);
+  pointer-events: none;
 }
 
-.modoFoco .identidade .faixa {
-  font-size: 26px;
+/* O player desce ate a base pelo transform: nao mexe no layout, entao corre
+   no compositor e nao engasga a cada quadro. */
+.arrastandoFoco .vidro,
+.modoFoco .vidro {
+  position: relative;
+  z-index: 7;
+  transform: translateY(calc(var(--vdy, 0px) * var(--foco)));
 }
 
-/* No sangrado o que sobrou do normal nao aparece. */
+.arrastandoFoco .topo,
+.modoFoco .topo,
+.arrastandoFoco .rodapeTocando,
+.modoFoco .rodapeTocando {
+  opacity: calc(1 - var(--foco));
+  pointer-events: none;
+}
+
 .modoFoco .aSeguir,
 .modoFoco .ondasTopo,
 .modoFoco .rotuloTocando {
   display: none;
+}
+
+/* Ao soltar, o resto do caminho vai sozinho - e so aqui existe transicao. */
+.assentando .capa,
+.assentando .capaVazia,
+.assentando .veuFoco,
+.assentando .vidro,
+.assentando .topo,
+.assentando .rodapeTocando {
+  transition: width 0.3s cubic-bezier(0.32, 0.72, 0, 1),
+    height 0.3s cubic-bezier(0.32, 0.72, 0, 1), top 0.3s cubic-bezier(0.32, 0.72, 0, 1),
+    left 0.3s cubic-bezier(0.32, 0.72, 0, 1), border-radius 0.3s ease,
+    transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.3s ease;
 }
 
 .modoFila .vidro {
@@ -2084,26 +2075,6 @@
 
   .divisor {
     display: block;
-  }
-
-  /* Trilha fininha de ponta a ponta da coluna, com o que falta a direita. */
-  .progresso .faixaDeslize::-webkit-slider-runnable-track {
-    height: 4px;
-  }
-
-  .progresso .faixaDeslize::-moz-range-track {
-    height: 4px;
-  }
-
-  .progresso .faixaDeslize::-webkit-slider-thumb {
-    width: 14px;
-    height: 14px;
-    margin-top: -5px;
-  }
-
-  .progresso .faixaDeslize::-moz-range-thumb {
-    width: 14px;
-    height: 14px;
   }
 
   .tempos {
