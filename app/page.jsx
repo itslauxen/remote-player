@@ -181,6 +181,18 @@ async function chamar(url, corpo, metodo) {
 // Altura da linha da fila (64px) mais o respiro entre linhas.
 const ALTURA_ITEM = 66;
 
+// Trilha e volume mandam no dedo inteiro enquanto ele esta neles: o gesto de
+// trocar de tela tem o mesmo limiar e roubava o arrasto pela metade. O atributo
+// marca quem tem gesto proprio sem espalhar nome de classe pelos handlers.
+const gestoProprio = (alvo) => !!alvo?.closest?.('[data-gesto], input[type=range]');
+
+// Quanto o dedo precisa andar de lado na capa para a faixa trocar.
+const CURSO_CAPA = 70;
+
+// Folga entre a capa atual e a vizinha, igual a do CSS: entra na conta de para
+// onde a capa que sai precisa ir.
+const VAO_CAPA = 16;
+
 export default function Pagina() {
   const [aba, setAba] = useState('tocando');
   const [vista, setVista] = useState('normal');
@@ -234,6 +246,17 @@ export default function Pagina() {
   const buscaConsumida = useRef(false);
   const somArrasto = useRef(null);
   const somMoveu = useRef(false);
+  const palco = useRef(null);
+  const toqueCapa = useRef(null);
+  const quadroCapa = useRef(0);
+  const proximaCapa = useRef(0);
+  const assentandoCapa = useRef(null);
+  // O que falta fazer quando a capa termina de sair: guardado para o relogio
+  // ou para o gesto seguinte poder disparar, quem chegar primeiro.
+  const fecharTroca = useRef(null);
+  // Enquanto o gesto troca a faixa, o plugin ainda responde com a antiga. Guarda
+  // o titulo pedido e ate quando vale esperar por ele.
+  const trocando = useRef(null);
   const ultimoVolume = useRef(0);
   const envioVolume = useRef(0);
   // Deitado a capa ja ocupa a tela inteira, entao nao ha foco para onde abrir e
@@ -257,6 +280,9 @@ export default function Pagina() {
 
   const completo = !!faixa?.completo;
   const aSeguir = fila.atual >= 0 ? fila.itens[fila.atual + 1] : null;
+  // A vizinha de tras so existe se a fila ja passou por ela; sem fila carregada
+  // as duas ficam nulas e o gesto vira so o comando, sem capa entrando.
+  const aAnterior = fila.atual > 0 ? fila.itens[fila.atual - 1] : null;
   const naFila = fila.atual >= 0 ? fila.itens[fila.atual] : null;
   const proximos = fila.atual >= 0 ? fila.itens.length - fila.atual - 1 : fila.itens.length;
 
@@ -271,7 +297,14 @@ export default function Pagina() {
     if (d.offline) return;
     // A marca de arrasto guarda a hora, nao um sim/nao: se algum evento de
     // ponteiro se perder, ela expira sozinha e a tela nunca fica congelada.
-    if (!arrastando.current || Date.now() - arrastando.current > 4000) {
+    // Depois de trocar a faixa pelo gesto, a resposta ainda vem com a musica
+    // velha por um instante. Aceita-la faria a capa voltar sozinha para o lado
+    // de onde saiu: a leitura so vale quando o titulo pedido chega, ou quando a
+    // espera se esgota - se o player ignorou o comando, a tela nao pode ficar
+    // presa numa faixa que nao esta tocando.
+    const t = trocando.current;
+    if (t && (d.titulo === t.titulo || Date.now() > t.ate)) trocando.current = null;
+    if (!trocando.current && (!arrastando.current || Date.now() - arrastando.current > 4000)) {
       arrastando.current = 0;
       setFaixa(d);
     }
@@ -436,7 +469,11 @@ export default function Pagina() {
 
   function inicioToqueTela(e) {
     buscaConsumida.current = false;
-    if (e.target.closest('input[type=range]')) return (toqueTela.current = null);
+    // A capa tem gesto horizontal proprio - trocar de faixa - e os sliders
+    // mandam no dedo inteiro: em nenhum dos dois o lado troca de tela.
+    if (gestoProprio(e.target) || e.target.closest(`.${styles.palco}`)) {
+      return (toqueTela.current = null);
+    }
     const t = e.touches[0];
     toqueTela.current = { x: t.clientX, y: t.clientY };
   }
@@ -538,7 +575,8 @@ export default function Pagina() {
   }
 
   function inicioToque(e) {
-    if (e.target.closest('input[type=range]')) return (toque.current = null);
+    // Arrastar a trilha na vertical nao pode abrir a tela cheia junto.
+    if (gestoProprio(e.target)) return (toque.current = null);
     const t = e.touches[0];
     toque.current = { x: t.clientX, y: t.clientY };
     escorregando.current = false;
@@ -603,6 +641,116 @@ export default function Pagina() {
   function cliqueCapa() {
     if (Date.now() - gestou.current < 600) return;
     focar(vista === 'foco' ? 'normal' : 'foco');
+  }
+
+  // As tres capas - a de tras, a atual e a proxima - andam juntas pelo mesmo
+  // --desliza, entao a vizinha entra pela borda no mesmo passo em que a atual
+  // sai. A opacidade sobe nos primeiros pixels: parada, a vizinha ja esta no
+  // lugar dela e apareceria de canto numa tela mais larga que a capa.
+  function aplicarDesliza(dx, opacidade) {
+    const p = palco.current;
+    if (!p) return;
+    p.style.setProperty('--desliza', `${dx}px`);
+    p.style.setProperty('--vizinha', String(opacidade));
+  }
+
+  // Mesmo motivo do foco: o dedo manda mais eventos do que a tela desenha.
+  function porDesliza(dx) {
+    proximaCapa.current = dx;
+    if (quadroCapa.current) return;
+    quadroCapa.current = requestAnimationFrame(() => {
+      quadroCapa.current = 0;
+      const d = proximaCapa.current;
+      aplicarDesliza(d, Math.min(1, Math.abs(d) / 24));
+    });
+  }
+
+  function larguraCapa() {
+    const capa = palco.current?.querySelector(`.${styles.capa}, .${styles.capaVazia}`);
+    return capa?.getBoundingClientRect().width || palco.current?.offsetWidth || 320;
+  }
+
+  function inicioCapaToque(e) {
+    const t = e.touches[0];
+    toqueCapa.current = { x: t.clientX, y: t.clientY, largura: 0, ativo: false };
+  }
+
+  function moveCapaToque(e) {
+    const t = toqueCapa.current;
+    if (!t) return;
+    const dx = e.touches[0].clientX - t.x;
+    const dy = e.touches[0].clientY - t.y;
+    if (!t.ativo) {
+      // O gesto para baixo abre a tela cheia: so assume o dedo quando ele esta
+      // claramente de lado, senao os dois brigariam pelo mesmo arrasto.
+      if (Math.abs(dx) < 10 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+      t.ativo = true;
+      t.largura = larguraCapa();
+      // Deslizando de novo antes da troca anterior fechar, ela fecha agora: sem
+      // isso o segundo gesto sairia da capa que ja estava de saida, e as duas
+      // vizinhas seriam as da faixa velha.
+      encerrarTroca();
+    }
+    // Sem vizinha conhecida nao ha capa nova para entrar: a atual cede um terco
+    // do dedo e volta, e a borracha ja avisa que dali nao sai nada.
+    const vizinha = dx > 0 ? aAnterior : aSeguir;
+    porDesliza(vizinha ? dx : dx * 0.32);
+  }
+
+  function fimCapaToque(e) {
+    const t = toqueCapa.current;
+    toqueCapa.current = null;
+    if (!t?.ativo) return;
+    const dx = e.changedTouches[0].clientX - t.x;
+    // O clique vem depois do touchend e abriria a tela cheia por cima da troca.
+    gestou.current = Date.now();
+    cancelAnimationFrame(quadroCapa.current);
+    quadroCapa.current = 0;
+    palco.current?.classList.add(styles.assentandoCapa);
+    if (Math.abs(dx) < CURSO_CAPA) return aplicarDesliza(0, 0);
+    navigator.vibrate?.(12);
+    trocarPeloGesto(dx > 0 ? -1 : 1, dx > 0 ? aAnterior : aSeguir, t.largura);
+  }
+
+  // Fecha a troca em andamento agora, em vez de esperar o relogio dela.
+  function encerrarTroca() {
+    if (!fecharTroca.current) return;
+    clearTimeout(assentandoCapa.current);
+    const fechar = fecharTroca.current;
+    fecharTroca.current = null;
+    fechar();
+  }
+
+  // O comando sai na hora - o PC nao espera a animacao. A capa continua o
+  // caminho ate sair da tela e, so no fim, a faixa nova assume o centro.
+  function trocarPeloGesto(passo, vizinha, largura) {
+    comando(passo > 0 ? 'next' : 'prev');
+    if (!vizinha) return aplicarDesliza(0, 0);
+    // Segura as leituras desde ja: a resposta com a faixa antiga chega no meio
+    // da animacao, e trocar o estado ali desmancharia o gesto pela metade.
+    trocando.current = { titulo: vizinha.titulo, ate: Date.now() + 2800 };
+    aplicarDesliza(-passo * (largura + VAO_CAPA), 1);
+
+    fecharTroca.current = () => {
+      // A troca do estado e a volta do deslocamento acontecem no mesmo quadro,
+      // e sem transicao: a capa nova ja esta carregada - era a vizinha - entao
+      // ninguem ve a atual voltando do outro lado.
+      palco.current?.classList.remove(styles.assentandoCapa);
+      aplicarDesliza(0, 0);
+      setFaixa((f) => ({
+        ...f,
+        titulo: vizinha.titulo,
+        artista: vizinha.artista || '',
+        capa: vizinha.capa || '',
+        posicao: 0,
+      }));
+      // Move o ponteiro da fila junto, senao as vizinhas ficariam as da faixa
+      // antiga ate a proxima leitura chegar.
+      setFila((fl) => (fl.atual >= 0 ? { ...fl, atual: fl.atual + passo } : fl));
+    };
+    // Um respiro alem dos 0,3s da transicao: caindo antes, a capa daria um pulo
+    // para tras no ultimo quadro.
+    assentandoCapa.current = setTimeout(encerrarTroca, 320);
   }
 
   // A trilha e desenhada a mao: o input[type=range] amarra o arrasto ao thumb,
@@ -1095,6 +1243,7 @@ export default function Pagina() {
               {somAberto ? (
                 <div
                   className={styles.volumeMenu}
+                  data-gesto="volume"
                   onPointerDown={completo ? inicioSom : undefined}
                   onPointerMove={completo ? moveSom : undefined}
                   onPointerUp={completo ? fimSom : undefined}
@@ -1198,7 +1347,27 @@ export default function Pagina() {
             onTouchEnd={fimToque}
             onWheel={aoRolar}
           >
-            <div className={styles.palco} onClick={cliqueCapa}>
+            <div
+              ref={palco}
+              className={styles.palco}
+              onClick={cliqueCapa}
+              onTouchStart={inicioCapaToque}
+              onTouchMove={moveCapaToque}
+              onTouchEnd={fimCapaToque}
+              onTouchCancel={fimCapaToque}
+            >
+              {/* As vizinhas ficam paradas a uma capa de distancia, invisiveis,
+                  e so aparecem enquanto o dedo arrasta. Como ja estao na tela, a
+                  imagem chega decodificada na hora de assumir o centro. */}
+              {aAnterior?.capa ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  className={`${styles.capaVizinha} ${styles.vizinhaAtras}`}
+                  src={aAnterior.capa}
+                  alt=""
+                  aria-hidden
+                />
+              ) : null}
               {faixa?.capa ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img className={styles.capa} src={faixa.capa} alt="" />
@@ -1207,6 +1376,15 @@ export default function Pagina() {
                   <Icone nome="disco" tamanho={80} />
                 </div>
               )}
+              {aSeguir?.capa ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  className={`${styles.capaVizinha} ${styles.vizinhaFrente}`}
+                  src={aSeguir.capa}
+                  alt=""
+                  aria-hidden
+                />
+              ) : null}
               {/* Acompanha o dedo junto com a capa; em 0 fica invisivel. */}
               <div className={styles.veuFoco} aria-hidden />
             </div>
@@ -1238,6 +1416,7 @@ export default function Pagina() {
                 <div className={styles.progresso}>
                   <div
                     className={styles.trilha}
+                    data-gesto="trilha"
                     role="slider"
                     aria-label="Posição da música"
                     aria-valuemin={0}
@@ -1370,6 +1549,7 @@ export default function Pagina() {
           {completo ? (
             <div
               className={styles.trilhoSom}
+              data-gesto="volume"
               onPointerDown={(e) => inicioSom(e, e.currentTarget)}
               onPointerMove={moveSom}
               onPointerUp={fimSom}

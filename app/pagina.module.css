@@ -367,30 +367,87 @@
   touch-action: pan-x;
 }
 
+/* O tamanho e o arredondamento moram aqui porque tres elementos precisam do
+   mesmo valor - a capa e as duas vizinhas do gesto lateral. Cada layout muda so
+   as variaveis e as tres acompanham juntas. */
 .palco {
+  --capa-larg: min(100%, 50dvh);
+  --capa-raio: 26px;
+  --desliza: 0px;
+  --vizinha: 0;
+  position: relative;
   display: flex;
   justify-content: center;
   min-height: 0;
   flex-shrink: 1;
+  /* O arrasto lateral e nosso: nada de pan nem de gesto de voltar do sistema. */
+  touch-action: none;
 }
 
 .capa {
-  width: min(100%, 50dvh);
+  width: var(--capa-larg);
   max-width: 100%;
   aspect-ratio: 1;
-  border-radius: 26px;
+  border-radius: var(--capa-raio);
   object-fit: cover;
   background: #ffffff0f;
   box-shadow: 0 30px 60px #00000099, 0 0 0 1px #ffffff1a inset;
+  /* Em 3d de proposito: alem de levar o gesto lateral, o eixo z tira a capa
+     para uma camada propria, e no gesto do foco - onde ela muda de tamanho a
+     cada quadro - quem repinta e so ela, nao a coluna inteira embaixo. */
+  transform: translate3d(var(--desliza), 0, 0);
   transition: max-height 0.4s ease, border-radius 0.4s ease;
 }
 
 .capaVazia {
   composes: capa;
-  width: min(100%, 50dvh);
+  width: var(--capa-larg);
   display: grid;
   place-items: center;
   color: #ffffff26;
+}
+
+/* 10c: deslizar a capa troca de faixa. As vizinhas ficam paradas a uma capa de
+   distancia de cada lado e andam pelo mesmo --desliza, entao a que entra chega
+   pela borda no mesmo passo em que a atual sai. Elas nao recebem toque: quem
+   escuta o dedo e o palco. */
+.capaVizinha {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  /* Imagem posicionada com altura automatica cai na altura propria do arquivo,
+     nao na do palco - prender as duas bordas nao adianta, a de baixo e
+     ignorada. A altura vem em cheio para acompanhar a capa quando a tela e
+     baixa e ela encolhe. */
+  height: 100%;
+  width: var(--capa-larg);
+  /* Com os dois lados presos em 0, a margem automatica centra - e ai o
+     deslocamento de uma capa cabe inteiro no transform, sem dividir a conta. */
+  margin-inline: auto;
+  border-radius: var(--capa-raio);
+  object-fit: cover;
+  background: #ffffff0f;
+  box-shadow: 0 30px 60px #00000099, 0 0 0 1px #ffffff1a inset;
+  opacity: var(--vizinha);
+  pointer-events: none;
+  transform: translate3d(calc(var(--lado, 1) * (100% + 16px) + var(--desliza)), 0, 0);
+}
+
+.vizinhaAtras {
+  --lado: -1;
+}
+
+.vizinhaFrente {
+  --lado: 1;
+}
+
+/* Enquanto o dedo manda nao ha transicao nenhuma; ela entra so no fim, para a
+   capa completar sozinha o caminho que faltou. */
+.assentandoCapa .capa,
+.assentandoCapa .capaVazia,
+.assentandoCapa .capaVizinha {
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.3s ease;
 }
 
 /* Um equalizador so, compacto, logo acima da trilha - a capa fica sempre a
@@ -1059,15 +1116,30 @@
    dedo: nada espera o fim do gesto. As medidas de partida (--c0*) sao lidas do
    proprio elemento quando o gesto comeca, entao a chegada bate com o layout
    real. */
+/* Registrado para o navegador saber que e numero: sem isto --foco troca de 0
+   para 1 de uma vez, e tudo que depende dele por dentro - a mascara da base da
+   capa, por exemplo - pula em vez de acompanhar. Largura e altura ja animavam
+   porque quem interpola ali e a propria propriedade, nao a variavel. */
+@property --foco {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
 .painel {
   --foco: 0;
 }
 
-/* Enquanto o dedo manda, nada tem transicao: a posicao e a do dedo. */
+/* Enquanto o dedo manda, nada tem transicao: a posicao e a do dedo. As duas
+   vizinhas seguem a mesma geometria: sangrando, a capa vale a tela inteira e
+   elas precisam esperar exatamente uma tela para fora, senao o gesto lateral
+   traria a vizinha no tamanho antigo. */
 .arrastandoFoco .capa,
 .arrastandoFoco .capaVazia,
+.arrastandoFoco .capaVizinha,
 .modoFoco .capa,
-.modoFoco .capaVazia {
+.modoFoco .capaVazia,
+.modoFoco .capaVizinha {
   position: fixed;
   z-index: 5;
   left: calc(var(--c0x, 0px) * (1 - var(--foco)));
@@ -1080,12 +1152,35 @@
   box-shadow: none;
 }
 
-/* A imagem se dissolve no fundo em vez de acabar numa aresta - so quando ja
-   esta sangrando, senao o cartao do 10a perderia a base. */
-.arrastandoFoco .capa,
-.modoFoco .capa {
-  -webkit-mask-image: linear-gradient(180deg, #000 46%, #000000d9 66%, transparent 97%);
-  mask-image: linear-gradient(180deg, #000 46%, #000000d9 66%, transparent 97%);
+/* Presa a esquerda pelo left do foco, a vizinha nao pode continuar centrando
+   pela margem - o vao de uma capa ja esta inteiro no transform. */
+.arrastandoFoco .capaVizinha,
+.modoFoco .capaVizinha {
+  right: auto;
+  bottom: auto;
+  margin-inline: 0;
+}
+
+/* A imagem se dissolve no fundo em vez de acabar numa aresta, mas so quando ja
+   esta sangrando: no cartao do 10a a base precisa ficar inteira. Quem regula
+   isso e o proprio --foco dentro da mascara, nao a presenca dela - a mascara
+   entrava e saia junto com a classe, e na volta da tela cheia o degrade da base
+   sumia de um quadro para o outro, com a capa ja assentada. Em 0 os tres
+   pontos sao opacos e a mascara nao morde nada. */
+.capa,
+.capaVizinha {
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    #000 46%,
+    rgb(0 0 0 / calc(1 - 0.15 * var(--foco))) 66%,
+    rgb(0 0 0 / calc(1 - var(--foco))) 97%
+  );
+  mask-image: linear-gradient(
+    180deg,
+    #000 46%,
+    rgb(0 0 0 / calc(1 - 0.15 * var(--foco))) 66%,
+    rgb(0 0 0 / calc(1 - var(--foco))) 97%
+  );
 }
 
 .modoFoco .capaVazia {
@@ -1125,6 +1220,25 @@
 .modoFoco .vidro {
   position: relative;
   z-index: 7;
+  will-change: transform;
+}
+
+/* O equalizador sao 48 barras animadas, cada uma com mascara e sombra. Elas
+   sozinhas correm lisas, mas o gesto do foco muda o tamanho da capa a cada
+   quadro, e as duas coisas juntas nao cabem no orcamento de um celular - a
+   descida engasgava so com o equalizador ligado. Congeladas durante o gesto,
+   elas saem do caminho e voltam a andar assim que a capa assenta; o
+   animation-play-state vem do estilo em linha, dai o important. */
+.arrastandoFoco .ondasTopo i,
+.assentando .ondasTopo i {
+  animation-play-state: paused !important;
+  filter: none;
+}
+
+/* O que as barras pintam nao sai daqui: sem isto, cada quadro delas convida a
+   coluna inteira para repintar junto. */
+.ondasTopo {
+  contain: layout paint;
 }
 
 /* A transicao de transform do .vidro fica valendo durante o gesto de proposito:
@@ -1160,11 +1274,19 @@
 .assentando .vidro,
 .assentando .aSeguir,
 .assentando .topo,
-.assentando .rodapeTocando {
+.assentando .rodapeTocando,
+.assentando .capaVizinha {
   transition: width 0.3s cubic-bezier(0.32, 0.72, 0, 1),
     height 0.3s cubic-bezier(0.32, 0.72, 0, 1), top 0.3s cubic-bezier(0.32, 0.72, 0, 1),
     left 0.3s cubic-bezier(0.32, 0.72, 0, 1), border-radius 0.3s ease,
     transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.3s ease;
+}
+
+/* O --foco desce junto, na mesma curva: e ele quem leva a mascara da base da
+   capa de volta ao opaco enquanto ela encolhe. Fica separado porque so o
+   painel carrega a variavel - herdada, ela chega em todo mundo. */
+.assentando {
+  transition: --foco 0.3s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .modoFila .vidro {
@@ -1823,6 +1945,12 @@
     border-radius: 28px;
   }
 
+  /* Aqui a capa tem a largura da propria imagem, e o gesto de deslizar nem
+     existe sem toque: as vizinhas nao teriam de onde tirar a medida. */
+  .capaVizinha {
+    display: none;
+  }
+
   .capaVazia {
     width: min(64dvh, 560px);
   }
@@ -1880,7 +2008,10 @@
     display: none;
   }
 
-  .modoFoco .capa {
+  /* Aqui a tela cheia e a capa inteira centrada, sem player por baixo: nao ha
+     base para dissolver, e a mascara so tiraria pedaco da imagem. */
+  .capa,
+  .capaVizinha {
     -webkit-mask-image: none;
     mask-image: none;
   }
@@ -2036,19 +2167,20 @@
   }
 
   .palco {
+    --capa-larg: 100dvh;
+    --capa-raio: 0 26px 26px 0;
     flex: 0 0 auto;
     align-items: stretch;
   }
 
   /* A capa sangra na borda esquerda e toma a altura inteira da tela. */
   .capa,
-  .capaVazia {
+  .capaVazia,
+  .capaVizinha {
     height: 100dvh;
-    width: 100dvh;
     margin: 0;
     max-width: none;
     max-height: none;
-    border-radius: 0 26px 26px 0;
     box-shadow: 30px 0 70px #000000b3;
   }
 
@@ -2146,8 +2278,23 @@
     margin-top: 2px;
   }
 
+  /* A nav flutua no canto de cima: 12px de folga mais 44px de pilula. O trilho
+     comeca 30px abaixo dela e vai quase ate a base - assim o dedo pega a barra
+     no meio da tela, e nao encostado no canto onde a nav esta. */
   .trilhoSom {
     display: flex;
+    top: 86px;
+    bottom: 20px;
+    /* Mesma largura do botao: os dois centram no eixo da barra, entao o icone
+       fica alinhado com a trilha em vez de so proximo dela. */
+    width: 30px;
+    gap: 12px;
+  }
+
+  .trilhoSom .somBotao {
+    width: 30px;
+    height: 30px;
+    flex: 0 0 auto;
   }
 
   /* O trilho passa por cima da gaveta: some junto com a nav quando ela abre. */
@@ -2175,13 +2322,17 @@
     display: none;
   }
 
-  .modoFoco .capa {
+  /* Deitado a capa sangra pela esquerda e o player fica ao lado, nao embaixo:
+     nao ha base para dissolver. */
+  .capa,
+  .capaVizinha {
     -webkit-mask-image: none;
     mask-image: none;
   }
 
   .modoFoco .capa,
-  .modoFoco .capaVazia {
+  .modoFoco .capaVazia,
+  .modoFoco .capaVizinha {
     width: 100dvh;
     height: 100dvh;
     border-radius: 0;
