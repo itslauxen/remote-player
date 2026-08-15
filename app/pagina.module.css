@@ -1054,19 +1054,11 @@
 @media (orientation: portrait) and (max-width: 859px) {
   /* A coluna do player passa a tomar a sobra e o cartao desce para a base dela:
      antes a folga ficava pendurada embaixo do cartao, sem uso. */
-  /* O recuo do topo e a folga do titulo cedem alguns px: com a capa quadrada
-     tomando a largura toda, o que sobrava para a coluna nao dava para o cartao
-     inteiro e ele passava da base, onde a tela corta. */
   .vidro {
     display: flex;
     flex-direction: column;
     flex: 1 1 auto;
     min-height: 0;
-    padding-top: 14px;
-  }
-
-  .identidade {
-    margin-bottom: 8px;
   }
 
   /* Em bloco, os 6px daqui se fundiam nos 10px dos controles; em coluna flex
@@ -1075,8 +1067,13 @@
     margin-bottom: 0;
   }
 
+  /* O margin-top empurra o cartao ate a base da coluna; sem o de baixo ele
+     encosta nela, e a barra de inicio - que fica por cima do conteudo quando o
+     app nao abre em tela cheia - cortava o cartao pela metade. A folga tira o
+     cartao do alcance dela sem devolver a sobra pendurada de antes. */
   .aSeguir {
     margin-top: auto;
+    margin-bottom: 22px;
     gap: 8px;
   }
 
