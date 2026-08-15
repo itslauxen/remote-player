@@ -25,13 +25,18 @@
   bottom: -20vh;
   /* Deixa um resto da capa borrada aparecer no alto - so o bastante para o
      fundo pegar o tom do album. A base continua opaca, senao a barra do
-     sistema volta a aparecer como faixa de outra cor. */
+     sistema volta a aparecer como faixa de outra cor.
+     O fecho opaco e medido a partir da base da tela, nao em porcentagem do veu:
+     em 72% ele caia no meio do brilho do play, e a virada de tom cortava a
+     sombra em linha reta. Ancorado logo acima da barra de inicio, a rampa passa
+     longe do play e a emenda continua fechando no tom certo. O veu comeca 10vh
+     acima da tela, entao a base dela fica em 110vh. */
   background: linear-gradient(
     180deg,
     #07080cbf 0%,
     #07080c8c 26%,
     #07080cd9 52%,
-    var(--fundo-base) 72%
+    var(--fundo-base) calc(110vh - env(safe-area-inset-bottom) - 12px)
   );
   pointer-events: none;
   transition: opacity 0.35s ease;
@@ -863,15 +868,15 @@
 }
 
 /* Trilho de volume da borda direita: substitui o menu flutuante no deitado. Os
-   8px a mais em cima abrem folga da pilula da nav, que antes quase encostava, e
-   os 8px a menos embaixo assentam o icone na linha da trilha de progresso - as
+   10px a mais em cima abrem folga da pilula da nav, que antes quase encostava, e
+   os 10px a menos embaixo assentam o icone na linha da trilha de progresso - as
    duas barras se encontram e o icone faz o vertice. */
 .trilhoSom {
   display: none;
   position: absolute;
   right: 20px;
-  top: 72px;
-  bottom: 48px;
+  top: 74px;
+  bottom: 46px;
   width: 26px;
   flex-direction: column;
   align-items: center;
