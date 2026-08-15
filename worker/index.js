@@ -1,8 +1,8 @@
 // Um endereco so para varias maquinas. O Worker fica na frente e encaminha
 // para o tunel da maquina escolhida; ?pc=mac troca e o cookie lembra.
-const COOKIE = 'pc';
+const COOKIE = "pc";
 const ANO = 31536000;
-const ROTA_LISTA = '/__dispositivos';
+const ROTA_LISTA = "/__dispositivos";
 
 function alvos(env) {
   const mapa = {};
@@ -16,41 +16,43 @@ function alvos(env) {
 function cabecalhosAccess(env) {
   if (!env.ACCESS_ID || !env.ACCESS_SECRET) return {};
   return {
-    'CF-Access-Client-Id': env.ACCESS_ID,
-    'CF-Access-Client-Secret': env.ACCESS_SECRET,
+    "CF-Access-Client-Id": env.ACCESS_ID,
+    "CF-Access-Client-Secret": env.ACCESS_SECRET,
   };
 }
 
 // Os cookies que o Access da frente emite valem so para o hostname da frente.
 function semCredenciaisDoAccess(cabecalho) {
-  return (cabecalho || '')
-    .split(';')
+  return (cabecalho || "")
+    .split(";")
     .map((parte) => parte.trim())
-    .filter((parte) => parte && !/^(CF_Authorization|CF_AppSession)=/i.test(parte))
-    .join('; ');
+    .filter(
+      (parte) => parte && !/^(CF_Authorization|CF_AppSession)=/i.test(parte),
+    )
+    .join("; ");
 }
 
 function lerCookie(cabecalho, nome) {
-  for (const parte of (cabecalho || '').split(';')) {
-    const [chave, ...resto] = parte.trim().split('=');
-    if (chave === nome) return resto.join('=');
+  for (const parte of (cabecalho || "").split(";")) {
+    const [chave, ...resto] = parte.trim().split("=");
+    if (chave === nome) return resto.join("=");
   }
-  return '';
+  return "";
 }
 
 function offline(alvo, outros, ehApi) {
   if (ehApi) {
     return Response.json(
       { ok: false, erro: `${alvo} nao esta respondendo`, offline: true },
-      { status: 503, headers: { 'Cache-Control': 'no-store' } },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
     );
   }
   const links = outros
     .map((nome) => `<a href="/?${COOKIE}=${nome}">controlar ${nome}</a>`)
-    .join(' &middot; ');
+    .join(" &middot; ");
   return new Response(
     `<!doctype html><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>${alvo} offline</title>
 <style>
   body{margin:0;min-height:100dvh;display:grid;place-items:center;background:#111;
@@ -62,7 +64,13 @@ function offline(alvo, outros, ehApi) {
   <p>O servidor nao esta rodando nessa maquina, ou o tunel caiu.</p>
   <p>${links}</p>
 </div>`,
-    { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } },
+    {
+      status: 503,
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-store",
+      },
+    },
   );
 }
 
@@ -71,12 +79,12 @@ function semToken(alvo, ehApi) {
   if (ehApi) {
     return Response.json(
       { ok: false, erro: recado, offline: true },
-      { status: 502, headers: { 'Cache-Control': 'no-store' } },
+      { status: 502, headers: { "Cache-Control": "no-store" } },
     );
   }
   return new Response(
     `<!doctype html><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>${alvo}: token recusado</title>
 <style>
   body{margin:0;min-height:100dvh;display:grid;place-items:center;background:#111;
@@ -89,7 +97,13 @@ function semToken(alvo, ehApi) {
   <b>Service Auth</b>, incluindo o service token do Worker.</p>
   <p>Uma policy de e-mail ali manda o visitante logar no hostname de tras.</p>
 </div>`,
-    { status: 502, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } },
+    {
+      status: 502,
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-store",
+      },
+    },
   );
 }
 
@@ -98,7 +112,7 @@ async function listar(mapa, nomes, alvo, padrao, env) {
   const dispositivos = await Promise.all(
     nomes.map(async (nome) => {
       try {
-        const r = await fetch(new URL('/api/now', mapa[nome]), {
+        const r = await fetch(new URL("/api/now", mapa[nome]), {
           headers: cabecalhosAccess(env),
           signal: AbortSignal.timeout(4000),
           cf: { cacheTtl: 0 },
@@ -111,7 +125,7 @@ async function listar(mapa, nomes, alvo, padrao, env) {
   );
   return Response.json(
     { atual: alvo, padrao, dispositivos },
-    { headers: { 'Cache-Control': 'no-store' } },
+    { headers: { "Cache-Control": "no-store" } },
   );
 }
 
@@ -119,7 +133,8 @@ export default {
   async fetch(requisicao, env) {
     const mapa = alvos(env);
     const nomes = Object.keys(mapa);
-    if (!nomes.length) return new Response('nenhum ALVO_* configurado', { status: 500 });
+    if (!nomes.length)
+      return new Response("nenhum ALVO_* configurado", { status: 500 });
 
     const padrao = mapa[env.PADRAO] ? env.PADRAO : nomes[0];
     const url = new URL(requisicao.url);
@@ -128,24 +143,26 @@ export default {
     // Troca de maquina volta para a URL limpa, para o PWA nao guardar o parametro
     // no cache do service worker.
     if (escolhido !== null) {
-      if (!mapa[escolhido]) return new Response('maquina desconhecida', { status: 400 });
+      if (!mapa[escolhido])
+        return new Response("maquina desconhecida", { status: 400 });
       url.searchParams.delete(COOKIE);
       return new Response(null, {
         status: 302,
         headers: {
           Location: url.pathname + url.search,
-          'Set-Cookie': `${COOKIE}=${escolhido}; Path=/; Max-Age=${ANO}; Secure; SameSite=Lax`,
-          'Cache-Control': 'no-store',
+          "Set-Cookie": `${COOKIE}=${escolhido}; Path=/; Max-Age=${ANO}; Secure; SameSite=Lax`,
+          "Cache-Control": "no-store",
         },
       });
     }
 
-    const cookie = lerCookie(requisicao.headers.get('Cookie'), COOKIE);
+    const cookie = lerCookie(requisicao.headers.get("Cookie"), COOKIE);
     const alvo = mapa[cookie] ? cookie : padrao;
 
-    if (url.pathname === ROTA_LISTA) return listar(mapa, nomes, alvo, padrao, env);
+    if (url.pathname === ROTA_LISTA)
+      return listar(mapa, nomes, alvo, padrao, env);
 
-    const ehApi = url.pathname.startsWith('/api/');
+    const ehApi = url.pathname.startsWith("/api/");
     const destino = new URL(url.pathname + url.search, mapa[alvo]);
     const adiante = new Request(destino, requisicao);
     // O navegador chega com o CF_Authorization emitido para o hostname da frente.
@@ -154,19 +171,19 @@ export default {
     // token. Era por isso que /__dispositivos acusava online (monta a requisicao
     // do zero) enquanto o proxy devolvia a pagina de erro do Access no lugar do
     // JSON da API e do CSS.
-    const restantes = semCredenciaisDoAccess(requisicao.headers.get('Cookie'));
-    if (restantes) adiante.headers.set('Cookie', restantes);
-    else adiante.headers.delete('Cookie');
-    adiante.headers.delete('CF-Access-Jwt-Assertion');
+    const restantes = semCredenciaisDoAccess(requisicao.headers.get("Cookie"));
+    if (restantes) adiante.headers.set("Cookie", restantes);
+    else adiante.headers.delete("Cookie");
+    adiante.headers.delete("CF-Access-Jwt-Assertion");
     // Origin e os Sec-Fetch-* descrevem o contexto do navegador em relacao ao
     // hostname da frente. Repassados, fazem o Access de tras enxergar uma chamada
     // cross-origin e aplicar CORS, derrubando o fetch do app -- enquanto abrir a
     // mesma URL na barra de enderecos passa, porque navegacao nao manda Origin.
     // Daqui para tras e servidor a servidor, entao esse contexto nao se aplica.
-    adiante.headers.delete('Origin');
-    adiante.headers.delete('Sec-Fetch-Site');
-    adiante.headers.delete('Sec-Fetch-Mode');
-    adiante.headers.delete('Sec-Fetch-Dest');
+    adiante.headers.delete("Origin");
+    adiante.headers.delete("Sec-Fetch-Site");
+    adiante.headers.delete("Sec-Fetch-Mode");
+    adiante.headers.delete("Sec-Fetch-Dest");
     for (const [chave, valor] of Object.entries(cabecalhosAccess(env))) {
       adiante.headers.set(chave, valor);
     }
@@ -177,24 +194,38 @@ export default {
     } catch (erro) {
       // Sem isto a falha vira um 503 mudo e a tela so diz "nada tocando".
       console.error(`${alvo}: ${url.pathname} nao foi adiante -- ${erro}`);
-      return offline(alvo, nomes.filter((n) => n !== alvo), ehApi);
+      return offline(
+        alvo,
+        nomes.filter((n) => n !== alvo),
+        ehApi,
+      );
     }
     // 502 e a familia 52x sao o tunel dizendo que a origem sumiu.
-    if (resposta.status === 502 || (resposta.status >= 520 && resposta.status <= 530)) {
+    if (
+      resposta.status === 502 ||
+      (resposta.status >= 520 && resposta.status <= 530)
+    ) {
       console.error(`${alvo}: ${url.pathname} voltou ${resposta.status}`);
-      return offline(alvo, nomes.filter((n) => n !== alvo), ehApi);
+      return offline(
+        alvo,
+        nomes.filter((n) => n !== alvo),
+        ehApi,
+      );
     }
     // Se a maquina de tras esta atras de Access e o service token nao passou, quem
     // responde e o proprio Access, nao o app: ou um desvio para a tela de login,
     // ou um 403 com pagina de erro em HTML. Repassar isso entrega HTML no lugar
     // do JSON da API e no lugar do CSS -- a tela abre sem estilo e dizendo "nada
     // tocando", sem pista do motivo. Os cabecalhos cf-access-* denunciam a origem.
-    const paraLogin = resposta.headers.get('Location') || '';
+    const paraLogin = resposta.headers.get("Location") || "";
     const desviouParaLogin =
-      resposta.status >= 300 && resposta.status < 400 && paraLogin.includes('cloudflareaccess.com');
+      resposta.status >= 300 &&
+      resposta.status < 400 &&
+      paraLogin.includes("cloudflareaccess.com");
     const negadoPeloAccess =
       resposta.status === 403 &&
-      (resposta.headers.get('cf-access-domain') || resposta.headers.get('cf-access-aud'));
+      (resposta.headers.get("cf-access-domain") ||
+        resposta.headers.get("cf-access-aud"));
     if (desviouParaLogin || negadoPeloAccess) {
       return semToken(alvo, ehApi);
     }
