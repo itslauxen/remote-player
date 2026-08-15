@@ -43,6 +43,12 @@
    nesse meio tempo sobra uma faixa do fundo do sistema embaixo. Com 100lvh a
    tela ocupa sempre a altura cheia e o proprio app pinta aquele pedaco; o
    recuo de baixo mantem o conteudo fora da barra de inicio. */
+/* Os 20px a mais embaixo levantam a coluna do player: o brilho do botao de
+   tocar desce 44px (12 de deslocamento e 32 de esfumado) e, quando nao ha
+   a seguir para ocupar o fim, ele alcancava a borda e o overflow desta mesma
+   regra o cortava reto. Tirar o overflow nao e opcao - e ele que esconde as
+   capas vizinhas do gesto de deslizar. Deitado e no desktop o recuo e outro,
+   definido nas consultas de media. */
 .tela {
   position: relative;
   display: flex;
@@ -51,7 +57,7 @@
   min-height: 100dvh;
   max-width: 520px;
   margin: 0 auto;
-  padding: calc(14px + env(safe-area-inset-top)) 20px env(safe-area-inset-bottom);
+  padding: calc(14px + env(safe-area-inset-top)) 20px calc(env(safe-area-inset-bottom) + 20px);
   overflow: hidden;
 }
 
@@ -1067,13 +1073,8 @@
     margin-bottom: 0;
   }
 
-  /* O margin-top empurra o cartao ate a base da coluna; sem o de baixo ele
-     encosta nela, e a barra de inicio - que fica por cima do conteudo quando o
-     app nao abre em tela cheia - cortava o cartao pela metade. A folga tira o
-     cartao do alcance dela sem devolver a sobra pendurada de antes. */
   .aSeguir {
     margin-top: auto;
-    margin-bottom: 22px;
     gap: 8px;
   }
 
