@@ -862,13 +862,16 @@
   background: #ffffff1f;
 }
 
-/* Trilho de volume da borda direita: substitui o menu flutuante no deitado. */
+/* Trilho de volume da borda direita: substitui o menu flutuante no deitado. Os
+   8px a mais em cima abrem folga da pilula da nav, que antes quase encostava, e
+   os 8px a menos embaixo assentam o icone na linha da trilha de progresso - as
+   duas barras se encontram e o icone faz o vertice. */
 .trilhoSom {
   display: none;
   position: absolute;
   right: 20px;
-  top: 64px;
-  bottom: 56px;
+  top: 72px;
+  bottom: 48px;
   width: 26px;
   flex-direction: column;
   align-items: center;
@@ -1498,7 +1501,10 @@
   backdrop-filter: blur(32px) saturate(180%);
   -webkit-backdrop-filter: blur(32px) saturate(180%);
   box-shadow: 0 -20px 60px #00000099;
-  transform: translate(-50%, 100%);
+  /* Os 2px a mais escondem a borda de cima: parada em 100% exatos ela pousa no
+     ultimo pixel da tela e, com viewport-fit=cover, vira um risco na area
+     segura. Deitado a gaveta sai pelo lado e o risco nao existe. */
+  transform: translate(-50%, calc(100% + 2px));
   transition: transform 0.36s cubic-bezier(0.32, 0.72, 0, 1);
   z-index: 9;
 }
