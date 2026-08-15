@@ -721,6 +721,44 @@ export default function Pagina() {
     fechar();
   }
 
+  // Poe na tela uma faixa que ja veio na fila, sem esperar o PC responder: o
+  // titulo, o artista e a capa estao todos na mao. A duracao fica a da faixa
+  // velha por um instante - ela nao vem na fila em segundos - e a leitura
+  // seguinte acerta. Quem chama e responsavel por segurar `trocando` antes,
+  // senao a leitura velha chega no meio e desfaz a troca.
+  function assentarFaixa(nova, novoAtual) {
+    setFaixa((f) => ({
+      ...f,
+      titulo: nova.titulo,
+      artista: nova.artista || '',
+      capa: nova.capa || '',
+      posicao: 0,
+    }));
+    // Move o ponteiro da fila junto, senao as vizinhas ficariam as da faixa
+    // antiga ate a proxima leitura chegar.
+    setFila((fl) => (fl.atual >= 0 ? { ...fl, atual: novoAtual(fl) } : fl));
+  }
+
+  // Segura as leituras ate a faixa pedida aparecer: enquanto isso o /api/now
+  // ainda devolve a antiga, e aceita-la faria a tela voltar atras sozinha.
+  function segurarLeitura(titulo) {
+    trocando.current = { titulo, ate: Date.now() + 2800 };
+  }
+
+  // Botao de passo: sem animacao de capa para esperar, a faixa vizinha assume
+  // no toque e o PC confirma depois.
+  async function passar(passo) {
+    const vizinha = passo > 0 ? aSeguir : aAnterior;
+    if (vizinha) {
+      segurarLeitura(vizinha.titulo);
+      assentarFaixa(vizinha, (fl) => fl.atual + passo);
+    }
+    const d = await comando(passo > 0 ? 'next' : 'prev');
+    // Se o comando nao passou, a tela nao pode ficar presa na faixa que so ela
+    // acha que esta tocando: solta a trava e deixa a proxima leitura mandar.
+    if (d && !d.ok) trocando.current = null;
+  }
+
   // O comando sai na hora - o PC nao espera a animacao. A capa continua o
   // caminho ate sair da tela e, so no fim, a faixa nova assume o centro.
   function trocarPeloGesto(passo, vizinha, largura) {
@@ -728,7 +766,7 @@ export default function Pagina() {
     if (!vizinha) return aplicarDesliza(0, 0);
     // Segura as leituras desde ja: a resposta com a faixa antiga chega no meio
     // da animacao, e trocar o estado ali desmancharia o gesto pela metade.
-    trocando.current = { titulo: vizinha.titulo, ate: Date.now() + 2800 };
+    segurarLeitura(vizinha.titulo);
     aplicarDesliza(-passo * (largura + VAO_CAPA), 1);
 
     fecharTroca.current = () => {
@@ -737,16 +775,7 @@ export default function Pagina() {
       // ninguem ve a atual voltando do outro lado.
       palco.current?.classList.remove(styles.assentandoCapa);
       aplicarDesliza(0, 0);
-      setFaixa((f) => ({
-        ...f,
-        titulo: vizinha.titulo,
-        artista: vizinha.artista || '',
-        capa: vizinha.capa || '',
-        posicao: 0,
-      }));
-      // Move o ponteiro da fila junto, senao as vizinhas ficariam as da faixa
-      // antiga ate a proxima leitura chegar.
-      setFila((fl) => (fl.atual >= 0 ? { ...fl, atual: fl.atual + passo } : fl));
+      assentarFaixa(vizinha, (fl) => fl.atual + passo);
     };
     // Um respiro alem dos 0,3s da transicao: caindo antes, a capa daria um pulo
     // para tras no ultimo quadro.
@@ -873,11 +902,13 @@ export default function Pagina() {
   }
 
   // Sucesso de comando nao avisa: o proprio player mudando e o feedback.
+  // Devolve a resposta para quem ja mudou a tela por conta poder desfazer.
   async function comando(acao) {
     navigator.vibrate?.(12);
     const d = await chamar(`/api/cmd/${acao}`, {});
     if (!d.ok) avisar(d.erro || 'não enviado', false);
     setTimeout(atualizar, 350);
+    return d;
   }
 
   // Manda o lado que se quer, em vez de um alternar: assim nao depende do
@@ -942,11 +973,19 @@ export default function Pagina() {
   async function tocar(item) {
     navigator.vibrate?.(12);
     setNotaBusca(`Enviando ${item.titulo}...`);
+    // O resultado da busca ja traz titulo, artista e capa: a aba de tocando
+    // abre com a musica pedida em vez de com a anterior, que ficava mais de um
+    // segundo na tela ate a leitura chegar. A trava e maior aqui porque o PC
+    // ainda vai carregar a faixa antes de anuncia-la.
+    segurarLeitura(item.titulo);
+    assentarFaixa(item, (fl) => fl.atual);
     const d = await chamar('/api/play', { id: item.id });
     setNotaBusca(d.ok ? '' : d.erro || 'Não consegui tocar.');
     if (d.ok) {
       setAba('tocando');
       setTimeout(atualizar, 1200);
+    } else {
+      trocando.current = null;
     }
   }
 
@@ -996,11 +1035,19 @@ export default function Pagina() {
   async function pular(item) {
     if (deslizado >= 0) return setDeslizado(-1);
     navigator.vibrate?.(12);
+    // A faixa escolhida ja esta na mao: assume ela agora, em vez de ficar quase
+    // um segundo mostrando a antiga ate a leitura chegar.
+    segurarLeitura(item.titulo);
+    assentarFaixa(item, (fl) => {
+      const i = fl.itens.findIndex((x) => x.indice === item.indice);
+      return i >= 0 ? i : fl.atual;
+    });
     const d = await chamar('/api/fila', { indice: item.indice });
     if (d.ok) {
       setTimeout(atualizar, 800);
       setTimeout(carregarFila, 1000);
     } else {
+      trocando.current = null;
       avisar(d.erro || 'não consegui pular', false);
     }
   }
@@ -1462,7 +1509,7 @@ export default function Pagina() {
                 )}
                 <button
                   className={styles.passo}
-                  onClick={() => comando('prev')}
+                  onClick={() => passar(-1)}
                   aria-label="Faixa anterior"
                 >
                   <Icone nome="anterior" tamanho={26} />
@@ -1476,7 +1523,7 @@ export default function Pagina() {
                 </button>
                 <button
                   className={styles.passo}
-                  onClick={() => comando('next')}
+                  onClick={() => passar(1)}
                   aria-label="Próxima faixa"
                 >
                   <Icone nome="proxima" tamanho={26} />

@@ -25,18 +25,15 @@
   bottom: -20vh;
   /* Deixa um resto da capa borrada aparecer no alto - so o bastante para o
      fundo pegar o tom do album. A base continua opaca, senao a barra do
-     sistema volta a aparecer como faixa de outra cor.
-     O fecho opaco e medido a partir da base da tela, nao em porcentagem do veu:
-     em 72% ele caia no meio do brilho do play, e a virada de tom cortava a
-     sombra em linha reta. Ancorado logo acima da barra de inicio, a rampa passa
-     longe do play e a emenda continua fechando no tom certo. O veu comeca 10vh
-     acima da tela, entao a base dela fica em 110vh. */
+     sistema volta a aparecer como faixa de outra cor. Empurrar este fecho para
+     perto da base nao ajuda: quem fazia a borda embaixo era o html pintando
+     --fundo, e adiar o opaco so devolve o resto de capa borrada na base. */
   background: linear-gradient(
     180deg,
     #07080cbf 0%,
     #07080c8c 26%,
     #07080cd9 52%,
-    var(--fundo-base) calc(110vh - env(safe-area-inset-bottom) - 12px)
+    var(--fundo-base) 72%
   );
   pointer-events: none;
   transition: opacity 0.35s ease;
@@ -1057,11 +1054,19 @@
 @media (orientation: portrait) and (max-width: 859px) {
   /* A coluna do player passa a tomar a sobra e o cartao desce para a base dela:
      antes a folga ficava pendurada embaixo do cartao, sem uso. */
+  /* O recuo do topo e a folga do titulo cedem alguns px: com a capa quadrada
+     tomando a largura toda, o que sobrava para a coluna nao dava para o cartao
+     inteiro e ele passava da base, onde a tela corta. */
   .vidro {
     display: flex;
     flex-direction: column;
     flex: 1 1 auto;
     min-height: 0;
+    padding-top: 14px;
+  }
+
+  .identidade {
+    margin-bottom: 8px;
   }
 
   /* Em bloco, os 6px daqui se fundiam nos 10px dos controles; em coluna flex
@@ -1072,7 +1077,7 @@
 
   .aSeguir {
     margin-top: auto;
-    gap: 10px;
+    gap: 8px;
   }
 
   .aSeguirCard {
