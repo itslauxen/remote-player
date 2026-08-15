@@ -1682,17 +1682,24 @@
   border-radius: 28px 28px 0 0;
   backdrop-filter: blur(32px) saturate(180%);
   -webkit-backdrop-filter: blur(32px) saturate(180%);
-  box-shadow: 0 -20px 60px #00000099;
+  /* A sombra so vale com a gaveta aberta. Fechada ela para logo abaixo da
+     borda, e um box-shadow que sobe 20px com 60px de esfumado passava por cima
+     da base da tela: era ele a faixa mais escura embaixo do player, e era ele
+     que cortava o brilho do botao de tocar. Medindo um print, o fundo escurecia
+     ate a ultima linha da web view e voltava ao tom limpo logo abaixo dela.
+     Deitado a gaveta sai pelo lado, e por isso a faixa so aparecia de pe. */
+  box-shadow: 0 -20px 60px #00000000;
   /* Os 2px a mais escondem a borda de cima: parada em 100% exatos ela pousa no
      ultimo pixel da tela e, com viewport-fit=cover, vira um risco na area
      segura. Deitado a gaveta sai pelo lado e o risco nao existe. */
   transform: translate(-50%, calc(100% + 2px));
-  transition: transform 0.36s cubic-bezier(0.32, 0.72, 0, 1);
+  transition: transform 0.36s cubic-bezier(0.32, 0.72, 0, 1), box-shadow 0.36s ease;
   z-index: 9;
 }
 
 .gavetaAberta {
   transform: translate(-50%, 0);
+  box-shadow: 0 -20px 60px #00000099;
 }
 
 .gavetaTopo {
