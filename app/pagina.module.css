@@ -1051,6 +1051,59 @@
   color: var(--tinta-fraca);
 }
 
+/* De pe no celular sobra tela abaixo dos botoes, e o a seguir e a unica coisa
+   ali com para onde crescer - deitado o espaco e outro, e os tamanhos de cima
+   continuam valendo. */
+@media (orientation: portrait) and (max-width: 859px) {
+  /* A coluna do player passa a tomar a sobra e o cartao desce para a base dela:
+     antes a folga ficava pendurada embaixo do cartao, sem uso. */
+  .vidro {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  /* Em bloco, os 6px daqui se fundiam nos 10px dos controles; em coluna flex
+     margem nao colapsa e os dois somariam. Zerar mantem o respiro de antes. */
+  .progresso {
+    margin-bottom: 0;
+  }
+
+  .aSeguir {
+    margin-top: auto;
+    gap: 10px;
+  }
+
+  .aSeguirCard {
+    gap: 14px;
+    padding: 10px;
+    border-radius: 16px;
+  }
+
+  .aSeguirCard img {
+    width: 52px;
+    height: 52px;
+    border-radius: 10px;
+  }
+
+  .aSeguirRotulo {
+    font-size: 11px;
+  }
+
+  .verFila {
+    font-size: 12px;
+  }
+
+  .aSeguirFaixa {
+    font-size: 15px;
+  }
+
+  .aSeguirArtista {
+    font-size: 12px;
+  }
+}
+
 .nota {
   font-size: 12px;
   color: var(--tinta-fraca);

@@ -6,6 +6,11 @@ export const metadata = {
   description: 'Controla e escolhe a musica que toca no PC.',
   manifest: '/manifest.webmanifest',
   appleWebApp: { capable: true, title: 'Controle', statusBarStyle: 'black-translucent' },
+  // O capable virou a meta sem prefixo no Next 16, e o iOS so entende ela do
+  // 17.4 para cima. Antes disso, sem a antiga, o app da tela de inicio nao abre
+  // em tela cheia - e ai a barra de inicio vira uma faixa fora da web view, com
+  // a cor que o sistema escolher.
+  other: { 'apple-mobile-web-app-capable': 'yes' },
   icons: {
     icon: [
       { url: '/favicon.svg', type: 'image/svg+xml' },

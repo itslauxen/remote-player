@@ -35,14 +35,19 @@ body {
   overscroll-behavior: none;
 }
 
-/* O html tambem pinta o fundo: qualquer fresta do iOS (barra de inicio,
-   overscroll) mostra esta cor, nunca uma faixa diferente. */
+/* O html tambem pinta o fundo: qualquer fresta do iOS - a faixa da barra de
+   inicio, o overscroll, o pedaco que o sistema pinta fora da web view - mostra
+   esta cor. Tem que ser a mesma da base do veu, nao a do theme-color: --fundo e
+   a cor certa para a barra do sistema, mas pintada como conteudo web ela sai
+   quase preta, e era ela a faixa escura embaixo do player, com uma borda que
+   parecia cortar o brilho do botao de tocar. Com --fundo-base os dois lados
+   chegam no mesmo tom e a emenda some. */
 html {
-  background: var(--fundo);
+  background: var(--fundo-base);
 }
 
 body {
-  background: var(--fundo);
+  background: var(--fundo-base);
   color: var(--tinta);
   font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   font-weight: 500;
